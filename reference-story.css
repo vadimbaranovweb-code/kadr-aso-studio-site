@@ -1,0 +1,21 @@
+.ref-set-settings{margin-top:20px;padding:16px;background:#fff;border:1px solid var(--line);border-radius:10px}
+.ref-set-settings>select{width:100%;font-size:16px}
+.ref-set-settings>.field-label{margin-top:0}
+.ref-set-settings>.ref-help{font-size:14px;line-height:1.7;margin-bottom:0}
+.ref-set-settings details{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
+.ref-set-settings summary{font-size:14px;line-height:1.5;cursor:pointer;color:#4635d7;font-weight:600}
+.ref-role-list{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.ref-role-list label{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:14px}
+.ref-role-list label>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#62687d}
+.ref-role-list select{width:100%;min-width:0;font-size:14px}
+.ref-set-settings .text-button{font-size:14px;line-height:1.5;text-align:left}
+.ref-preview-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:24px}
+.ref-preview-heading h3{font-size:20px;line-height:1.4}
+.ref-preview-heading label{font-size:14px;flex:0 0 155px}
+.ref-preview-heading select{width:100%;margin-top:5px;font-size:14px}
+.ref-preview{flex-basis:144px}
+.ref-preview span{font-size:14px;line-height:1.4;min-height:40px}
+.ref-studio>footer .button{white-space:normal}
+@media(max-width:850px){.ref-role-list{grid-template-columns:1fr}.ref-set-settings{padding:12px}.ref-preview{flex-basis:130px}.ref-preview-heading{flex-wrap:wrap}}
+@media(max-width:650px){.ref-role-list{grid-template-columns:1fr 1fr}.ref-preview-heading{margin-top:20px}.ref-preview-heading h3{font-size:18px}}
+@media(max-width:420px){.ref-role-list{grid-template-columns:1fr}}

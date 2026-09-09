@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Кадр — ASO студия</title>
+  <meta name="description" content="Редактор скриншотов приложений: композиции, мокапы, слои и экспорт PNG.">
+  <meta name="theme-color" content="#f5f6fa">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%235342e8'/%3E%3Cpath d='M11 17v-6h6m6 0h6v6m0 6v6h-6m-6 0h-6v-6' stroke='white' stroke-width='3' fill='none'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./workflow.css"><link rel="stylesheet" href="./reference-story.css"><script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Кадр, главная"><span class="brand-mark" aria-hidden="true">⌗</span>кадр<span class="brand-caption">ASO студия</span></a>
+    <div class="project-title"><input id="project-name" aria-label="Название проекта" maxlength="64" value="Мой первый комплект"><button id="autosave-status" class="autosave-status" aria-haspopup="dialog" aria-controls="autosave-dialog" title="Резервная копия в этом браузере">Открываем резервную копию…</button></div>
+    <div class="mode-switch" role="group" aria-label="Режим работы"><button id="mode-express" aria-pressed="true" title="Быстрая сборка комплекта">Express</button><button id="mode-pro" aria-pressed="false" title="Редактирование на холсте">Pro</button></div>
+    <div class="history-actions"><button class="icon-button" id="undo" title="Отменить · ⌘Z" aria-label="Отменить">↶</button><button class="icon-button" id="redo" title="Повторить · ⌘⇧Z" aria-label="Повторить">↷</button></div>
+    <div class="top-actions"><button class="button ghost" id="open-project">Открыть</button><button class="button" id="save-project">Сохранить проект</button><button class="button primary" id="export-current">Экспорт…</button></div>
+  </header>
+  <main class="workspace">
+    <aside class="left-panel" aria-label="Кадры и слои">
+      <button id="open-templates" class="button template-launch">Шаблоны комплекта <span aria-hidden="true">↗</span></button>
+      <button id="open-texts" class="button copy-launch">Тексты комплекта <span aria-hidden="true">T</span></button>
+
+      <button id="open-batch" class="button batch-launch">Заменить экраны UI</button>
+
+      <div class="left-tabs" role="tablist" aria-label="Навигация редактора"><button id="tab-frames" role="tab" aria-selected="true" aria-controls="frames-pane" data-tab="frames">Кадры <span id="frame-count">1 / 6</span></button><button id="tab-layers" role="tab" aria-selected="false" aria-controls="layers-pane" tabindex="-1" data-tab="layers">Слои</button></div>
+      <section id="frames-pane" role="tabpanel" aria-labelledby="tab-frames"><button id="add-screens" class="upload-button">＋ Добавить экраны</button><div id="frame-list" class="frame-list"></div></section>
+      <section id="layers-pane" role="tabpanel" aria-labelledby="tab-layers" hidden><div class="add-tools"><button id="add-text" title="Добавить текст">T<span>Текст</span></button><button id="add-graphic" title="Загрузить графику">▧<span>Графика</span></button><button id="add-crop" title="Вырезать фрагмент интерфейса">⌗<span>UI</span></button></div><button id="add-phone" class="button full" style="margin-bottom:12px">＋ Телефон в 3D</button><div id="layer-list" class="layer-list"></div><button class="background-layer" id="select-background"><span id="bg-swatch"></span>Фон кадра</button><p class="small muted layer-hint">Верхние слои перекрывают нижние.</p></section>
+      <div class="left-footer"><label class="export-both-label"><input type="checkbox" id="export-both">Оба размера в ZIP</label><button class="button full" id="export-all">Скачать комплект ZIP</button><span class="small muted">PNG · масштаб из настроек экспорта</span></div>
+    </aside>
+    <section class="stage-panel" aria-label="Редактор кадра">
+      <div class="project-context" aria-label="Текущая версия и язык">
+        <button id="open-versions" class="context-button" aria-haspopup="dialog"><span>Версия</span><strong id="active-version-label">Основная</strong><span aria-hidden="true">⌄</span></button>
+        <button id="open-localization" class="context-button" aria-haspopup="dialog"><span>Язык</span><strong id="active-locale-label">English</strong><span aria-hidden="true">⌄</span></button>
+        <div class="context-size"><label for="format">Размер</label><select id="format"><option value="414x896">414 × 896</option><option value="440x956">440 × 956</option></select></div>
+      </div>
+      <div class="stage-toolbar"><div class="frame-heading"><span id="active-label">Кадр 01</span><button id="show-design" class="button compact">Композиция</button><button id="panorama-action" class="button compact" aria-pressed="false">Панорама</button><button id="enable-phone" class="button compact">3D-мокап</button></div><div class="format-control"><button id="toggle-refs" class="button compact" aria-expanded="false" aria-controls="references-panel">Референсы <span id="refs-count">0</span></button></div></div>
+      <div id="resize-toolbar" class="resize-toolbar"><div class="resize-controls"><label for="edit-scope">Правки композиции</label><select id="edit-scope" aria-describedby="resize-help"><option value="all">Во всех размерах</option><option value="format">Только этот размер</option></select><button id="reset-size" class="button compact" disabled>Вернуть авторесайз</button></div><span id="resize-status" class="resize-status"></span><p id="resize-help">Положение, размер, выравнивание и ракурс могут отличаться. Тексты, экраны, цвета и состав слоёв — общие.</p></div>
+      <div id="layout-warnings" class="layout-warnings" hidden aria-label="Проверка текста"></div>
+      <div id="panorama-options" class="panorama-options" hidden><span id="panorama-note"></span><label><input type="checkbox" id="show-seam" checked>Линия разреза</label></div>
+      <div class="viewport-toolbar"><div class="zoom-controls" role="group" aria-label="Масштаб холста"><button id="zoom-out" class="icon-button" aria-label="Уменьшить холст">−</button><select id="canvas-zoom" aria-label="Масштаб холста"><option value="fit">Вписать</option><option value="0.25">25%</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option><option value="1.5">150%</option><option value="2">200%</option></select><button id="zoom-in" class="icon-button" aria-label="Увеличить холст">+</button><output id="zoom-value" aria-live="polite"></output></div><button id="pan-canvas" class="button compact" aria-pressed="false">Рука</button><span class="viewport-note">Пробел + перетаскивание</span></div>
+      <div class="phone-toolbar"><button id="rotate-3d" class="button compact" aria-pressed="false" hidden>Вращать 3D</button></div>
+      <div id="render-error" class="render-error" role="alert" hidden><span id="render-error-text"></span><button id="retry-3d" class="button compact">Перезапустить 3D</button><button id="configure-failed-phone" class="button compact">Настроить мокап</button></div>
+      <div class="stage" id="drop-zone"><div class="canvas-viewport" id="canvas-viewport" tabindex="0" aria-label="Область просмотра холста"><div class="canvas-surface" id="canvas-surface">
+        <div class="canvas-wrap" id="canvas-wrap">
+          <canvas id="preview" width="828" height="1792" tabindex="0" aria-label="Холст. Выбери слой мышью или в панели слоёв. Стрелки перемещают выбранный слой."></canvas>
+          <div id="panorama-labels" class="panorama-labels" hidden><span id="panorama-left-label"></span><span id="panorama-right-label"></span></div><div id="panorama-seam" class="panorama-seam" aria-hidden="true" hidden></div>
+          <div class="selection" id="selection" hidden><span class="selection-label" id="selection-label"></span><button id="resize-handle" class="handle resize" aria-label="Изменить размер слоя" title="Масштабировать"></button><button id="rotate-handle" class="handle rotate" aria-label="Повернуть слой" title="Повернуть"></button></div>
+          <div id="guide-x" class="guide vertical" hidden></div><div id="guide-y" class="guide horizontal" hidden></div>
+        </div>
+        </div></div><aside id="references-panel" class="references-panel" hidden aria-label="Референсы проекта"><div class="panel-heading"><h2>Референсы</h2><button id="close-refs" class="icon-button" aria-label="Закрыть референсы">×</button></div><button id="add-refs" class="upload-button">＋ Прикрепить</button><p class="small muted">До 8 изображений. Выбери реф, чтобы взять палитру и задать композицию.</p><div id="references-list"></div></aside>
+        <div class="drop-overlay">Отпусти, чтобы заменить экран приложения</div>
+      </div>
+      <div class="stage-bottom"><span id="source-status">Демонстрационный интерфейс</span><span id="interaction-hint">Выбери объект на холсте</span></div>
+    </section>
+    <aside class="inspector" aria-label="Свойства выбранного объекта"><div id="inspector-content"></div></aside>
+    <aside id="express-panel" class="express-panel" aria-label="Быстрая сборка" hidden>
+      <div class="express-heading"><h2>Собрать комплект</h2><p id="express-step-caption">Шаг 1 из 4</p></div>
+      <nav class="flow-tabs express-tabs" aria-label="Шаги Express">
+        <button data-express-step="1" aria-current="step">1 · Экраны</button><button data-express-step="2">2 · Стиль</button><button data-express-step="3">3 · Тексты</button><button data-express-step="4">4 · Экспорт</button>
+      </nav>
+      <div class="express-content">
+        <section data-express-pane="1"><h3>Загрузи экраны приложения</h3><p>До шести PNG, JPG или WebP. Демонстрационный экран заменится твоими.</p><p id="express-screens-status" class="workflow-status"></p><button id="express-add" class="button primary full">Загрузить экраны</button><button id="express-replace" class="text-button">Обновить UI готового комплекта</button></section>
+        <section data-express-pane="2" hidden><h3>Выбери оформление</h3><p>Применяй общий стиль к комплекту. Экраны и тексты останутся редактируемыми.</p><button id="express-style" class="button primary full">Выбрать шаблон</button><button id="express-reference" class="button full">Собрать по референсу</button><p id="express-panorama-note" hidden>В комплекте есть панорама. Её оформление можно изменить в Pro.</p><p class="workflow-note">Для собственных слоёв, шрифтов и ракурсов переключись в Pro.</p></section>
+        <section data-express-pane="3" hidden><h3>Расскажи о пользе приложения</h3><p>Отредактируй заголовки всего комплекта и проверь переносы.</p><button id="express-texts" class="button primary full">Редактировать тексты</button><button id="express-localization" class="text-button">Перевести на другой язык</button><p class="workflow-note">Тексты относятся к языку, выбранному над холстом.</p></section>
+        <section data-express-pane="4" hidden><h3>Комплект готов к проверке</h3><p id="express-export-summary"></p><p>В окне экспорта выбери кадры, языки, размеры и качество PNG.</p><button id="express-export" class="button primary full" hidden>Настроить экспорт</button><p class="workflow-note">Сверь изображения с предпросмотром. Файл проекта сохранит все редактируемые версии.</p></section>
+      </div>
+      <footer class="express-footer"><div class="express-navigation"><button id="express-back" class="button">Назад</button><button id="express-next" class="button primary">Далее · Стиль</button></div><button id="express-to-pro" class="text-button">Открыть полный редактор Pro</button></footer>
+    </aside>
+  </main>
+  <dialog id="export-dialog" class="export-dialog" aria-labelledby="export-title">
+    <header><div><h2 id="export-title">Экспорт скриншотов</h2><p id="export-context"></p></div><button id="export-close" class="icon-button" aria-label="Закрыть экспорт">×</button></header>
+    <div class="export-body">
+      <label class="export-field">Что скачать<select id="export-scope"><option value="frame">Текущий кадр</option><option value="pair">Текущая панорама · 2 кадра</option><option value="set">Весь комплект</option><option value="languages">Комплекты на нескольких языках</option></select></label>
+      <div id="export-languages" hidden><h3>Языки в архиве</h3><p>В общий архив можно включить проверенные языки.</p><div id="export-language-list"></div><button id="export-review-languages" class="text-button">Проверить переводы</button></div>
+      <div class="export-settings"><label class="export-field">Размеры кадров<select id="export-formats"><option value="both">Оба размера</option><option value="414x896">414 × 896</option><option value="440x956">440 × 956</option></select></label><label class="export-field">Масштаб PNG<select id="export-resolution"><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option></select></label></div>
+      <div id="export-summary" class="export-summary" role="status" aria-live="polite"></div>
+      <p id="export-error" class="batch-error" role="alert" hidden></p><p id="export-progress" role="status" aria-live="polite"></p>
+      <div id="export-result" class="export-result" hidden><p>Файл готов. Если скачивание не началось, нажми ссылку.</p><a id="export-download-link" class="button primary" download>Скачать файл</a><p id="export-result-warning"></p></div>
+    </div>
+    <footer><p>PNG сохраняют исходный интерфейс и выбранную композицию. Редактируемый файл скачивается через «Сохранить проект».</p><button id="export-run" class="button primary">Подготовить ZIP</button></footer>
+  </dialog>
+  <dialog id="localization-dialog" class="localization-dialog locale-wizard" aria-labelledby="locale-title" aria-describedby="locale-help">
+    <header><div><h2 id="locale-title">Языки и переводы</h2><p id="locale-help">Выбери язык, внеси перевод и примени его к комплекту.</p><p id="locale-step-context" class="workflow-context"></p></div><button id="locale-close" class="icon-button" aria-label="Закрыть локализацию">×</button></header>
+    <nav class="flow-tabs locale-tabs" aria-label="Шаги локализации"><button data-locale-step="1">1 · Язык</button><button data-locale-step="2">2 · Тексты и UI</button><button data-locale-step="3">3 · Проверка</button></nav>
+    <div class="locale-body">
+      <p id="locale-error" class="batch-error" role="alert" hidden></p>
+      <section data-locale-pane="1">
+        <h3>На какой язык готовим комплект?</h3><p class="locale-note">Добавление языка создаёт копию оформления. Перевод внесём на следующем шаге.</p>
+        <div class="locale-setup"><label>Исходный язык<select id="locale-source"></select></label><label>Новый язык<select id="locale-add-code"></select></label><button id="locale-add" class="button primary">Добавить и перевести</button></div>
+        <div id="locale-list" class="locale-list"></div>
+      </section>
+      <section data-locale-pane="2" hidden>
+        <div class="locale-editor-heading"><div><h3 id="locale-editor-caption"></h3><p id="locale-editor-help">Впиши готовый перевод справа. Кнопка внизу применит его ко всем кадрам этого языка.</p></div><button id="locale-ui" class="button">Загрузить UI этого языка</button></div>
+        <p id="locale-draft-state" class="workflow-status" role="status" aria-live="polite"></p>
+        <details id="locale-assist" class="locale-assist"><summary>Получить перевод через ChatGPT или Claude</summary>
+          <p>Встроенный автоперевод пока не подключён. Этот вариант подготовит задание для помощника и перенесёт его ответ в поля ниже.</p>
+          <details class="locale-context"><summary>Контекст для маркетингового перевода</summary><p>Кому и чем помогает приложение, как звучит бренд и какие обещания допустимы.</p><div class="locale-brief-grid">
+            <label>Что делает приложение<textarea id="locale-brief-product" maxlength="2000" rows="2"></textarea></label>
+            <label>Для кого<textarea id="locale-brief-audience" maxlength="2000" rows="2"></textarea></label>
+            <label>Польза и реальные возможности<textarea id="locale-brief-benefits" maxlength="2000" rows="2"></textarea></label>
+            <label>Тон текста<textarea id="locale-brief-tone" maxlength="2000" rows="2" placeholder="Коротко, дружелюбно, без преувеличений"></textarea></label>
+            <label>Бренды и термины<textarea id="locale-brief-terms" maxlength="2000" rows="2"></textarea></label>
+            <label>Ограничения обещаний<textarea id="locale-brief-claims" maxlength="2000" rows="2"></textarea></label>
+          </div><div class="locale-answer-actions"><button id="locale-save-brief" class="button">Сохранить контекст</button><button id="locale-reset-brief" class="text-button">Вернуть сохранённый контекст</button></div></details>
+          <ol class="translation-guide">
+            <li><h4>Передай задание помощнику</h4><p>Скопируй задание в новый чат ChatGPT или Claude. Экраны приложения в него не включаются.</p><div class="locale-answer-actions"><button id="locale-copy-prompt" class="button">Скопировать задание</button><button id="locale-show-prompt" class="button">Показать текст задания</button><button id="locale-prompt" class="text-button">Скачать TXT</button></div><textarea id="locale-prompt-text" rows="7" readonly aria-label="Задание для перевода" hidden></textarea></li>
+            <li><h4>Вставь полный ответ</h4><p>Задание попросит помощника вернуть ответ в формате JSON. Скопируй его целиком.</p><label class="sr-only" for="locale-answer">Ответ с переводом</label><textarea id="locale-answer" rows="5" maxlength="1000000" placeholder="Вставь ответ ChatGPT или Claude целиком" spellcheck="false"></textarea><div class="locale-answer-actions"><button id="locale-check-answer" class="button primary">Подставить перевод в поля</button><button id="locale-import-file" class="button">Открыть файл ответа</button></div></li>
+          </ol><p id="locale-assist-status" role="status" aria-live="polite"></p>
+        </details>
+        <div id="locale-copy-fields"></div>
+        <button id="locale-reset-draft" class="text-button">Сбросить неприменённые правки текста</button>
+      </section>
+      <section data-locale-pane="3" hidden>
+        <div class="locale-editor-heading"><div><h3>Проверь готовые кадры</h3><p>Перевод уже применён к этому языку. Посмотри смысл, переносы и интерфейс в обоих размерах.</p></div><label>Предпросмотр размера<select id="locale-review-format"><option value="414x896">414 × 896</option><option value="440x956">440 × 956</option></select></label></div>
+        <p id="locale-review-report" class="workflow-status" role="status" aria-live="polite"></p>
+        <div id="locale-review-frames" class="locale-review-frames"></div>
+        <label class="locale-check locale-ready"><input id="locale-review-ready" type="checkbox"><span>Я проверил перевод, переносы и язык интерфейса</span></label>
+        <p class="locale-note">Тексты внутри изображений не переводятся. Их можно заменить на шаге «Тексты и UI».</p>
+      </section>
+    </div>
+    <footer><div><p id="locale-progress" role="status" aria-live="polite"></p><p id="locale-footer-note">Применённые изменения сохраняются в проекте. Черновик остаётся в этой вкладке.</p></div><div class="locale-footer-actions"><button id="locale-back" class="button">Назад</button><button id="locale-main" class="button primary">К текстам</button></div></footer>
+    <input id="locale-json-input" type="file" accept="application/json,.json" hidden>
+  </dialog>
+  <dialog id="batch-dialog" class="batch-dialog" aria-labelledby="batch-title" aria-describedby="batch-help">
+    <header><div><h2 id="batch-title">Заменить экраны UI</h2><p id="batch-help">Назначь новые экраны кадрам. Тексты, ракурсы и настройки композиции в обоих размерах сохранятся.</p></div><button id="batch-close" class="icon-button" aria-label="Закрыть без применения">×</button></header>
+    <div class="batch-body">
+      <div class="batch-upload-bar"><button id="batch-upload" class="button primary">Загрузить новые экраны</button><button id="batch-reset" class="button">Сбросить назначения</button><p>PNG, JPG, WebP · до 12 файлов, по 12 МБ · новая загрузка заменяет список файлов</p></div>
+      <p id="batch-progress" class="batch-progress" role="status" aria-live="polite"></p><p id="batch-error" class="batch-error" role="alert" hidden></p>
+      <div id="batch-rows" class="batch-rows"></div>
+    </div>
+    <footer><div class="batch-destination"><label for="batch-destination">Куда применить</label><select id="batch-destination"><option value="new">В новую версию</option><option value="current">В текущую версию</option></select><label id="batch-name-field" for="batch-version-name">Название версии<input id="batch-version-name" maxlength="60" placeholder="Обновление UI"></label><p id="batch-capacity" hidden>Достигнут лимит 8 версий. Можно обновить текущую или освободить место в «Версиях комплекта».</p></div><div class="batch-submit"><strong id="batch-summary" role="status" aria-live="polite"></strong><p>До применения проект не меняется. «Отмена» закроет назначения без сохранения.</p><div><button id="batch-cancel" class="button">Отмена</button><button id="batch-apply" class="button primary" disabled>Создать версию и заменить</button></div></div></footer>
+    <input id="batch-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+  </dialog>
+  <dialog id="versions-dialog" class="versions-dialog" aria-labelledby="versions-title" aria-describedby="versions-help">
+    <header><div><h2 id="versions-title">Версии комплекта <span id="version-count"></span></h2><p id="versions-help">Создай альтернативу и редактируй её отдельно. При переключении текущая работа остаётся в своей версии.</p></div><button id="versions-close" class="icon-button" aria-label="Закрыть версии" autofocus>×</button></header>
+    <div id="versions-body" class="versions-body"><form id="version-create-form" class="version-create-form"><label for="version-new-name">Копия текущей версии</label><div><input id="version-new-name" type="text" maxlength="60" required placeholder="Название новой версии"><button id="version-create" class="button primary" type="submit">Создать копию</button></div></form><p id="version-error" class="version-error" role="alert" hidden></p><p id="version-progress" class="version-progress" role="status" aria-live="polite"></p><div id="version-list" class="version-list"></div></div>
+    <footer><div><strong id="versions-save-status">Автосохранение включено</strong><p>«Сохранить проект» скачивает все версии одним файлом. «Скачать эту версию» — только выбранный вариант. История отмены действует до закрытия вкладки.</p></div><button id="version-undo" class="button" disabled>Отменить действие</button></footer>
+  </dialog>
+  <dialog id="autosave-dialog" class="autosave-dialog" aria-labelledby="autosave-title">
+    <header><h2 id="autosave-title">Автосохранение</h2><button id="autosave-close" class="icon-button" aria-label="Закрыть">×</button></header>
+    <div class="autosave-body"><p id="autosave-detail" role="status" aria-live="polite"></p><p id="autosave-time"></p><p>Последний проект со всеми его версиями и языками восстанавливается в этом браузере. Копия включает экраны, тексты, слои, референсы, панорамы и оба размера.</p><p>Копия хранится на этом устройстве. Другой браузер, приватное окно или очистка данных сайта могут сделать её недоступной. Для переноса и надёжного хранения скачай файл проекта.</p><p>Автосохранение учитывает применённые правки. Черновики в открытых окнах и история отмены после закрытия вкладки не восстанавливаются.</p><div class="autosave-file"><strong>Файл проекта</strong><p id="save-status">Не сохранён в файл</p><button id="autosave-download" class="button">Скачать проект</button></div><div id="autosave-replace-note" class="autosave-replace-note" hidden><p>«Сохранять эту вкладку» заменит прежнюю резервную копию текущим проектом. Работу из другой вкладки сначала можно скачать в файл.</p></div></div>
+    <footer><a href="./reset.html" class="button ghost">Начать заново</a><button id="autosave-retry" class="button" hidden>Повторить сохранение</button><button id="autosave-use-current" class="button" hidden>Сохранять эту вкладку</button><button id="autosave-now" class="button primary">Сохранить сейчас</button></footer>
+  </dialog>
+  <dialog id="text-dialog" class="copy-dialog" aria-labelledby="text-title" aria-describedby="text-help">
+    <header><div><h2 id="text-title">Тексты комплекта</h2><p id="text-help">Заголовки и подписи всех кадров. Правки действуют в обоих размерах, переносы строк сохраняются.</p></div><button id="text-close" class="icon-button" aria-label="Закрыть тексты" autofocus>×</button></header>
+    <div class="copy-summary"><p id="text-check-summary" role="status" aria-live="polite"></p><p>Проверяем границы и пересечения текстовых блоков. Телефоны, графику и читаемость оцени на холсте; стык панорамы не считается краем.</p></div>
+    <p id="text-error" class="copy-error" role="alert" hidden></p>
+    <div id="text-scroll" class="copy-scroll"><table class="copy-table"><caption class="sr-only">Тексты кадров и проверка расположения в двух размерах</caption><thead><tr><th scope="col">Кадр</th><th scope="col">Заголовок</th><th scope="col">Подзаголовок</th><th scope="col">414 × 896</th><th scope="col">440 × 956</th></tr></thead><tbody id="text-rows"></tbody></table></div>
+    <footer><div><strong id="text-change-count"></strong><p>«Применить» и переход на холст сохранят правки в редакторе и включат их в автосохранение. «Отменить» вернёт прежние тексты. «Отмена» закроет черновик без применения.</p></div><div class="copy-actions"><button id="text-cancel" class="button">Отмена</button><button id="text-apply" class="button primary" disabled>Применить тексты</button></div></footer>
+  </dialog>
+  <dialog id="panorama-dialog" class="panorama-dialog" aria-labelledby="panorama-title"><form method="dialog"><header><h2 id="panorama-title">Панорама из двух кадров</h2><button class="icon-button" value="cancel" aria-label="Закрыть">×</button></header><div class="panorama-dialog-body"><p>Объедини соседние кадры, чтобы перемещать телефон, текст и графику через общий стык.</p><label class="field-label" for="panorama-pair">Какие кадры объединить</label><select id="panorama-pair"></select><p>Общий фон возьмём из левого кадра. Тексты и экраны обоих кадров сохранятся. Исходное раздельное оформление можно вернуть из свойств панорамы.</p></div><footer><button class="button" value="cancel">Отмена</button><button class="button primary" type="button" id="create-panorama">Объединить</button></footer></form></dialog>
+  <dialog id="templates-dialog" class="templates-dialog" aria-labelledby="templates-title" aria-describedby="templates-description">
+    <header class="templates-header"><div><h2 id="templates-title">Шаблоны комплекта</h2><p id="templates-description">Выбери общий стиль и композиции. Тексты, экраны и твоя графика останутся редактируемыми.</p></div><button type="button" id="close-templates" class="icon-button" aria-label="Закрыть шаблоны" autofocus>×</button></header>
+    <div class="templates-body">
+      <div class="template-settings"><label>Кадров<select id="template-count"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label><label>Телефон<select id="template-device"><option value="template">Как в шаблоне</option><option value="iphone17">iPhone 17 · 3D</option><option value="flat">Обычная рамка</option><option value="source">Как в исходниках</option></select></label><label class="template-color-check"><input type="checkbox" id="template-colors">Сохранить мои цвета</label></div>
+      <details class="template-source-details" open><summary>Исходники и тексты по кадрам</summary><p>Каждая позиция берёт экран, тексты и дополнительные слои выбранного кадра. Один исходник можно использовать несколько раз.</p><div id="template-sources" class="template-sources"></div></details>
+      <p id="template-locks" class="template-warning" hidden></p>
+      <p id="template-progress" class="template-progress" role="status" aria-live="polite"></p>
+      <div id="template-gallery" class="template-gallery" role="group" aria-label="Шаблоны оформления"></div>
+    </div>
+    <footer class="templates-footer"><div><strong id="template-choice"></strong><p id="template-current-frame"></p><p>«Отменить» вернёт текущую работу. После применения проверь переносы текста и области вырезок UI.</p></div><div class="template-apply"><button type="button" class="button" id="use-template-frame" disabled>Кадр → в текущий</button><button type="button" class="button primary" id="use-template-set" disabled>Создать вариант</button></div></footer>
+  </dialog>
+  <dialog id="ref-studio" class="ref-studio" aria-labelledby="ref-studio-title" aria-describedby="ref-studio-help">
+    <header><div><h2 id="ref-studio-title">Оформление по референсу</h2><p id="ref-studio-help">Отметь текст и телефон на референсе. Соберём разные композиции с твоими экранами и общей палитрой.</p></div><button id="close-ref-studio" class="icon-button" aria-label="Закрыть оформление по референсу">×</button></header>
+    <div class="ref-studio-body">
+      <section class="ref-setup" aria-label="Настройки референса">
+        <label class="field-label" for="ref-choice">Референс</label><select id="ref-choice"></select>
+        <div class="ref-zone-tools" role="group" aria-label="Разметка референса"><button data-ref-zone="crop" aria-pressed="true">1. Кадр</button><button data-ref-zone="title" aria-pressed="false">2. Текст</button><button data-ref-zone="phone" aria-pressed="false">3. Телефон</button></div>
+        <p id="ref-zone-hint" class="ref-help"></p>
+        <div class="ref-board-stage"><canvas id="ref-board" tabindex="0" aria-label="Разметка референса. Перетяни для выбора области; стрелки перемещают её, Shift ускоряет."></canvas></div>
+        <div id="ref-box-fields" class="ref-box-fields"></div>
+        <button id="ref-reset-zones" class="text-button">Вернуть исходные области текста и телефона</button>
+        <div class="ref-palette-heading"><label class="checkbox-label"><input id="ref-use-colors" type="checkbox" checked>Взять палитру</label><button id="ref-sample-colors" class="text-button">Определить заново</button></div>
+        <div class="ref-palette"><label>Фон<input type="color" id="ref-background"></label><label>Текст<input type="color" id="ref-ink"></label><label>Акцент<input type="color" id="ref-accent"></label></div>
+        <p class="ref-help">Цвета определяются автоматически. Области, шрифт и ракурс задаёшь ты; надписи и детали чужого интерфейса не переносятся.</p>
+        <label class="field-label" for="ref-font">Шрифт</label><select id="ref-font"><option value="source">Мой текущий</option><option>Arial</option><option>Trebuchet MS</option><option>Georgia</option><option>Impact</option></select>
+        <label class="field-label" for="ref-align">Выравнивание текста</label><select id="ref-align"><option value="left">Слева</option><option value="center">По центру</option><option value="right">Справа</option></select>
+        <label class="field-label" for="ref-rotation">Поворот телефона, °</label><input id="ref-rotation" type="number" min="-30" max="30" step="1" value="0">
+      </section>
+      <section class="ref-results" aria-label="Варианты на моих экранах">
+        <div class="ref-result-controls"><label>Применить к<select id="ref-scope"><option value="current">Текущему кадру</option><option value="set">Всему комплекту</option></select></label><label>Мокап<select id="ref-device"><option value="source">Мой текущий</option><option value="iphone17">iPhone 17 · 3D</option><option value="flat">Обычная рамка</option></select></label></div>
+        <section id="ref-set-settings" class="ref-set-settings" aria-label="Композиции комплекта">
+          <label class="field-label" for="ref-set-layout">Композиции комплекта</label>
+          <select id="ref-set-layout"><option value="story">Разные композиции в одном стиле</option><option value="repeat">Повторить разметку на всех кадрах</option></select>
+          <p id="ref-set-hint" class="ref-help">Первый кадр повторяет разметку. Следующие меняют масштаб UI, расположение текста и ракурсы.</p>
+          <details id="ref-role-settings"><summary>Настроить композицию каждого кадра</summary><div id="ref-role-list" class="ref-role-list"></div><button id="ref-reset-roles" class="text-button">Вернуть предложенную последовательность</button></details>
+        </section>
+        <div class="ref-preview-heading"><h3>Варианты комплекта</h3><label for="ref-preview-format">Предпросмотр<select id="ref-preview-format"><option value="414x896">414 × 896</option><option value="440x956">440 × 956</option></select></label></div>
+        <p class="ref-help">Тексты берём из проекта. Крупная деталь — вырезка твоего UI; нужную область можно уточнить в Pro.</p>
+        <p id="ref-progress" class="ref-help" role="status" aria-live="polite"></p>
+        <div id="ref-variants" class="ref-variants" role="group" aria-label="Варианты оформления"></div>
+      </section>
+    </div>
+    <footer><p>Применение обновит оба размера и сбросит поправки перемещённых слоёв. Дополнительные и заблокированные объекты сохранятся. «Отменить» вернёт предыдущий комплект.</p><div><button id="save-ref-recipe" class="button">Сохранить разметку</button><button id="apply-ref-variant" class="button primary" disabled>Создать вариант</button></div></footer>
+  </dialog>
+  <dialog id="crop-dialog" class="crop-dialog"><form method="dialog"><header><div><h2>Фрагмент интерфейса</h2><p class="muted small">Выдели область на исходном экране.</p></div><button class="icon-button" value="cancel" aria-label="Закрыть">×</button></header><div class="crop-stage"><div id="crop-source-wrap"><img id="crop-source" alt="Исходный интерфейс для выбора фрагмента"><div id="crop-selection"></div></div></div><div class="crop-values" id="crop-values"></div><footer><button class="button" value="cancel">Отмена</button><button type="button" class="button primary" id="confirm-crop">Использовать фрагмент</button></footer></form></dialog>
+  <dialog id="reference-dialog" class="reference-dialog"><form method="dialog"><button class="icon-button" aria-label="Закрыть">×</button><img id="reference-large" alt="Референс в полном размере"></form></dialog>
+  <input type="file" id="screens-input" accept="image/png,image/jpeg,image/webp" multiple hidden>
+  <input type="file" id="replace-input" accept="image/png,image/jpeg,image/webp" hidden>
+  <input type="file" id="device-input" accept="image/png,image/jpeg,image/webp" hidden>
+  <input type="file" id="graphic-input" accept="image/png,image/jpeg,image/webp" hidden>
+  <input type="file" id="references-input" accept="image/png,image/jpeg,image/webp" multiple hidden>
+  <input type="file" id="project-input" accept=".json,application/json" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="busy" class="busy" hidden><span class="spinner"></span><span id="busy-label">Готовим файлы…</span></div>
+</body>
+</html>
