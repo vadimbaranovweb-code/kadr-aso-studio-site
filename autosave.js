@@ -7,7 +7,7 @@ export function recoveryMessage(error){
   return error?.message||'Не удалось сохранить резервную копию. Скачай проект в файл.';
 }
 
-export function createAutosave({store,getSnapshot,restore,onState=()=>{},delay=650,maxWait=3000}){
+export function createAutosave({store,getSnapshot,restore,onState=()=>{},delay=650,maxWait=3000,validate=validateProject}){
   const codec=createRecoveryCodec();let token=null,generation=0,savedGeneration=0,ready=false,blocked=false,flight=null,timer=null,maxTimer=null;
   let state={status:'loading',savedAt:null,error:null,mode:null,pending:false};
   const report=patch=>{state={...state,...patch,pending:generation!==savedGeneration};onState({...state});};
@@ -19,7 +19,7 @@ export function createAutosave({store,getSnapshot,restore,onState=()=>{},delay=6
       if(record?.head?.reset===true&&record.head.version===1&&typeof record.head.token==='string'&&record.head.token){
         token=record.head.token;ready=true;report({status:'idle',savedAt:null,error:null,mode:null});return false;
       }
-      if(record){const snapshot=codec.unpack(record);snapshot.project=validateProject(snapshot.project);await restore(snapshot);token=record.head.token;ready=true;report({status:'saved',savedAt:record.head.updatedAt,error:null,mode:null});return true;}
+      if(record){const snapshot=codec.unpack(record);snapshot.project=validate(snapshot.project);await restore(snapshot);token=record.head.token;ready=true;report({status:'saved',savedAt:record.head.updatedAt,error:null,mode:null});return true;}
       ready=true;report({status:'idle',error:null,mode:null});return false;
     }catch(error){ready=true;fail(error,'load');return false;}
   }
@@ -40,7 +40,7 @@ export function createAutosave({store,getSnapshot,restore,onState=()=>{},delay=6
           const snapshot=clone(getSnapshot());
           // Validate before replacing the last good copy. Validation preserves
           // layer order; view selection is stored as indices, not transient IDs.
-          snapshot.project=validateProject(snapshot.project);
+          snapshot.project=validate(snapshot.project);
           const record=codec.pack(snapshot);await store.write(record,token);
           token=record.head.token;codec.accept(record.head);savedGeneration=version;
           report({status:generation===version?'saved':'saving',savedAt:record.head.updatedAt,error:null,mode:null});
