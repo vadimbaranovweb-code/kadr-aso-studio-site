@@ -27,38 +27,43 @@ function fitText(ctx,text,{width,size,minSize,maxLines,weight}){
 }
 export function frameLayout(ctx,project,slide){
   const store=STORES[project.store],w=440,h=440*store.height/store.width;
-  const title=fitText(ctx,slide.title,{width:w-64,size:34,minSize:21,maxLines:3,weight:700});
-  const sub=fitText(ctx,project.subtitleEnabled?slide.subtitle:'',{width:w-72,size:17,minSize:13,maxLines:3,weight:400});
+  const title=fitText(ctx,slide.title,{width:w-64,size:slide.titleSize??34,minSize:slide.titleSize&&slide.titleSize!==34?slide.titleSize:21,maxLines:3,weight:700});
+  const sub=fitText(ctx,project.subtitleEnabled?slide.subtitle:'',{width:w-72,size:slide.subtitleSize??17,minSize:slide.subtitleSize&&slide.subtitleSize!==17?slide.subtitleSize:13,maxLines:3,weight:400});
   const titleY=48,titleHeight=slide.title?title.lines.length*title.size*1.15:0;
   const subtitleY=titleY+titleHeight+(titleHeight?15:0);
   const subtitleHeight=project.subtitleEnabled&&slide.subtitle?sub.lines.length*sub.size*1.35:0;
-  const top=Math.max(h*.28,subtitleY+subtitleHeight+30);
+  const textBottom=subtitleY+subtitleHeight;
+  const top=Math.max(h*.28,textBottom+30);
   const device=deviceFor(project);
   const ratio=project.frame==='none'?slide.height/slide.width:project.frame==='device'?device.ratio:project.store==='apple'?2868/1320:20/9;
   const padding=project.frame==='device'?device.padding:project.frame==='outline'?3:0;
-  const width=project.layout==='full'?Math.min(w*.8,(h-top-32-2*padding)/ratio+2*padding):w*.88;
+  const width=project.layout==='full'?Math.min(w*.8,(h-top-32-2*padding)/ratio+2*padding):w*.88*(project.cropScale??1);
   const height=(width-2*padding)*ratio+2*padding;
-  return {w,h,title,sub,titleY,subtitleY,phone:{x:(w-width)/2,y:top,width,height,padding,ratio},overflow:title.overflow||sub.overflow};
+  const y=project.layout==='crop'?Math.max(textBottom+24,top-h*(project.cropRaise??0)):top;
+  return {w,h,title,sub,titleY,subtitleY,titleHeight,subtitleHeight,phone:{x:(w-width)/2,y,width,height,padding,ratio},overflow:title.overflow||sub.overflow};
 }
-export function renderSlide(canvas,project,slide,image,index=0,{scale=1}={}){
+export function renderSlide(canvas,project,slide,image,index=0,{scale=1,hideText=null}={}){
   const spec=STORES[project.store];canvas.width=Math.round(spec.width*scale);canvas.height=Math.round(spec.height*scale);
   const ctx=canvas.getContext('2d'),factor=canvas.width/440;
   ctx.setTransform(factor,0,0,factor,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
   const layout=frameLayout(ctx,project,slide),{w,h,phone:p}=layout;
   const count=Math.max(1,project.slides.length),colors=project.background.colors;
   if(project.background.mode==='solid')ctx.fillStyle=colors[0];else{
-    const gradient=ctx.createLinearGradient(-index*w,0,(count-index)*w,h*.35);
+    let gradient;
+    if(project.background.angle==null)gradient=ctx.createLinearGradient(-index*w,0,(count-index)*w,h*.35);
+    else{const a=project.background.angle*Math.PI/180,dx=Math.cos(a),dy=Math.sin(a),length=Math.abs(count*w*dx)+Math.abs(h*dy),cx=count*w/2-index*w,cy=h/2;gradient=ctx.createLinearGradient(cx-dx*length/2,cy-dy*length/2,cx+dx*length/2,cy+dy*length/2);}
     gradient.addColorStop(0,colors[0]);gradient.addColorStop(1,colors[1]);ctx.fillStyle=gradient;
   }
   ctx.fillRect(0,0,w,h);
   const color=textColor(project.background.mode==='solid'?[colors[0]]:colors);
   ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='top';
   ctx.font=`700 ${layout.title.size}px Arial`;
-  if(slide.title)layout.title.lines.forEach((line,i)=>ctx.fillText(line,w/2,layout.titleY+i*layout.title.size*1.15));
+  if(slide.title&&hideText!=='title')layout.title.lines.forEach((line,i)=>ctx.fillText(line,w/2,layout.titleY+i*layout.title.size*1.15));
   ctx.font=`400 ${layout.sub.size}px Arial`;ctx.globalAlpha=.8;
-  if(project.subtitleEnabled&&slide.subtitle)layout.sub.lines.forEach((line,i)=>ctx.fillText(line,w/2,layout.subtitleY+i*layout.sub.size*1.35));
+  if(project.subtitleEnabled&&slide.subtitle&&hideText!=='subtitle')layout.sub.lines.forEach((line,i)=>ctx.fillText(line,w/2,layout.subtitleY+i*layout.sub.size*1.35));
   ctx.globalAlpha=1;
-  const device=deviceFor(project);
+  const original=deviceFor(project),tint=(color,light)=>'#'+rgb(color).map(v=>Math.round(light>=0?v+(255-v)*light:v*(1+light)).toString(16).padStart(2,'0')).join('');
+  const device=project.deviceColor?{...original,body:tint(project.deviceColor,-.45),metal:[.05,.8,-.25,.4,-.4].map(n=>tint(project.deviceColor,n))}:original;
   const radius=project.frame==='device'?p.width*device.radius:project.frame==='outline'?p.width*.08:12;
   ctx.save();ctx.shadowColor='#0713242B';ctx.shadowBlur=20;ctx.shadowOffsetY=12;
   round(ctx,p.x,p.y,p.width,p.height,radius);ctx.fillStyle=project.frame==='device'?device.body:project.frame==='outline'?color:'#FFFFFF';ctx.fill();ctx.restore();

@@ -12,7 +12,7 @@
 </head>
 <body>
   <header class="site-header">
-    <a href="./" class="brand" aria-label="Кадр — главная"><span class="brand-mark" aria-hidden="true">⌗</span>кадр<span class="version">MVP · 0.2</span></a>
+    <a href="./" class="brand" aria-label="Кадр — главная"><span class="brand-mark" aria-hidden="true">⌗</span>кадр<span class="version">MVP · 0.3</span></a>
     <span id="save-status" class="save-status" aria-live="polite">Открываем проект…</span>
     <div class="header-actions"><button id="open-project" class="button quiet">Открыть проект</button><button id="save-project" class="button quiet" hidden>Сохранить проект</button><button id="new-project" class="button quiet" hidden>Новый</button></div>
   </header>
@@ -21,6 +21,7 @@
   <input id="screens-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
   <input id="project-input" type="file" accept=".json,.kadr.json,application/json" hidden>
   <dialog id="message-dialog"><h2 id="dialog-title"></h2><p id="dialog-body"></p><div id="dialog-extra"></div><div class="dialog-actions"><button id="dialog-cancel" class="button">Отмена</button><button id="dialog-confirm" class="button primary">Продолжить</button></div></dialog>
+  <dialog id="color-dialog" class="color-dialog"><form method="dialog"><header><h2>Цвет</h2><button class="button quiet" aria-label="Закрыть палитру">✕</button></header></form><div id="color-content"></div></dialog>
   <noscript>Для редактора нужен JavaScript. Включите его в настройках браузера.</noscript>
 </body>
 </html>
