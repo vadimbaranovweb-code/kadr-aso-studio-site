@@ -1,4 +1,4 @@
-import {STORES} from './model.js';
+import {formatFor} from './model.js';
 import {deviceFor} from './devices.js';
 const round=(ctx,x,y,w,h,r)=>{ctx.beginPath();ctx.roundRect(x,y,w,h,r);};
 const rgb=hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
@@ -26,7 +26,7 @@ function fitText(ctx,text,{width,size,minSize,maxLines,weight}){
   return {lines,size:Math.max(size,minSize),overflow:lines.length>maxLines};
 }
 export function frameLayout(ctx,project,slide){
-  const store=STORES[project.store],w=440,h=440*store.height/store.width;
+  const store=formatFor(project),w=440,h=440*store.height/store.width;
   const title=fitText(ctx,slide.title,{width:w-64,size:slide.titleSize??34,minSize:slide.titleSize&&slide.titleSize!==34?slide.titleSize:21,maxLines:3,weight:700});
   const sub=fitText(ctx,project.subtitleEnabled?slide.subtitle:'',{width:w-72,size:slide.subtitleSize??17,minSize:slide.subtitleSize&&slide.subtitleSize!==17?slide.subtitleSize:13,maxLines:3,weight:400});
   const titleY=48,titleHeight=slide.title?title.lines.length*title.size*1.15:0;
@@ -37,17 +37,18 @@ export function frameLayout(ctx,project,slide){
   const device=deviceFor(project);
   const ratio=project.frame==='none'?slide.height/slide.width:project.frame==='device'?device.ratio:project.store==='apple'?2868/1320:20/9;
   const padding=project.frame==='device'?device.padding:project.frame==='outline'?3:0;
-  const width=project.layout==='full'?Math.min(w*.8,(h-top-32-2*padding)/ratio+2*padding):w*.88*(project.cropScale??1);
+  const fitted=Math.min(w*.8,(h-top-32-2*padding)/ratio+2*padding);
+  const width=project.phoneScale!=null?fitted*project.phoneScale:project.layout==='full'?Math.min(w*.8,(h-top-32-2*padding)/ratio+2*padding):w*.88*(project.cropScale??1);
   const height=(width-2*padding)*ratio+2*padding;
-  const y=project.layout==='crop'?Math.max(textBottom+24,top-h*(project.cropRaise??0)):top;
+  const y=project.phoneScale!=null?Math.max(textBottom+24,top+h*(project.phoneY??0)):project.layout==='crop'?Math.max(textBottom+24,top-h*(project.cropRaise??0)):top;
   return {w,h,title,sub,titleY,subtitleY,titleHeight,subtitleHeight,phone:{x:(w-width)/2,y,width,height,padding,ratio},overflow:title.overflow||sub.overflow};
 }
 export function renderSlide(canvas,project,slide,image,index=0,{scale=1,hideText=null}={}){
-  const spec=STORES[project.store];canvas.width=Math.round(spec.width*scale);canvas.height=Math.round(spec.height*scale);
+  const spec=formatFor(project);canvas.width=Math.round(spec.width*scale);canvas.height=Math.round(spec.height*scale);
   const ctx=canvas.getContext('2d'),factor=canvas.width/440;
   ctx.setTransform(factor,0,0,factor,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
   const layout=frameLayout(ctx,project,slide),{w,h,phone:p}=layout;
-  const count=Math.max(1,project.slides.length),colors=project.background.colors;
+  const count=Math.max(1,project.slides.length),colors=project.background.colors.map((c,i)=>compositeColor(c,project.background.opacities?.[i]??1));
   if(project.background.mode==='solid')ctx.fillStyle=colors[0];else{
     let gradient;
     if(project.background.angle==null)gradient=ctx.createLinearGradient(-index*w,0,(count-index)*w,h*.35);
@@ -55,12 +56,12 @@ export function renderSlide(canvas,project,slide,image,index=0,{scale=1,hideText
     gradient.addColorStop(0,colors[0]);gradient.addColorStop(1,colors[1]);ctx.fillStyle=gradient;
   }
   ctx.fillRect(0,0,w,h);
-  const color=textColor(project.background.mode==='solid'?[colors[0]]:colors);
-  ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='top';
+  const color=project.textColor||textColor(project.background.mode==='solid'?[colors[0]]:colors);
+  ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='top';ctx.globalAlpha=project.textOpacity??1;
   ctx.font=`700 ${layout.title.size}px Arial`;
-  if(slide.title&&hideText!=='title')layout.title.lines.forEach((line,i)=>ctx.fillText(line,w/2,layout.titleY+i*layout.title.size*1.15));
-  ctx.font=`400 ${layout.sub.size}px Arial`;ctx.globalAlpha=.8;
-  if(project.subtitleEnabled&&slide.subtitle&&hideText!=='subtitle')layout.sub.lines.forEach((line,i)=>ctx.fillText(line,w/2,layout.subtitleY+i*layout.sub.size*1.35));
+  if(slide.title&&hideText!=='title')layout.title.lines.forEach((line,i)=>highlightLine(ctx,line,w/2,layout.titleY+i*layout.title.size*1.15,slide.titleHighlight,slide.titleHighlightColor,color));
+  ctx.font=`400 ${layout.sub.size}px Arial`;ctx.globalAlpha=.8*(project.textOpacity??1);
+  if(project.subtitleEnabled&&slide.subtitle&&hideText!=='subtitle')layout.sub.lines.forEach((line,i)=>highlightLine(ctx,line,w/2,layout.subtitleY+i*layout.sub.size*1.35,slide.subtitleHighlight,slide.subtitleHighlightColor,color));
   ctx.globalAlpha=1;
   const original=deviceFor(project),tint=(color,light)=>'#'+rgb(color).map(v=>Math.round(light>=0?v+(255-v)*light:v*(1+light)).toString(16).padStart(2,'0')).join('');
   const device=project.deviceColor?{...original,body:tint(project.deviceColor,-.45),metal:[.05,.8,-.25,.4,-.4].map(n=>tint(project.deviceColor,n))}:original;
@@ -76,8 +77,8 @@ export function renderSlide(canvas,project,slide,image,index=0,{scale=1,hideText
   const sx=p.x+p.padding,sy=p.y+p.padding,sw=p.width-2*p.padding,sh=p.height-2*p.padding;
   ctx.save();round(ctx,sx,sy,sw,sh,Math.max(4,radius-p.padding));ctx.clip();ctx.fillStyle='#F7F9FC';ctx.fillRect(sx,sy,sw,sh);
   if(image){
-    const fit=Math.min(sw/slide.width,sh/slide.height),iw=slide.width*fit,ih=slide.height*fit;
-    ctx.drawImage(image,sx+(sw-iw)/2,sy+(sh-ih)/2,iw,ih);
+    const box=screenRect(slide,{x:sx,y:sy,width:sw,height:sh});
+    ctx.drawImage(image,box.x,box.y,box.width,box.height);
   }
   ctx.restore();
   if(project.frame==='device'){
@@ -87,3 +88,7 @@ export function renderSlide(canvas,project,slide,image,index=0,{scale=1,hideText
   }
   return layout;
 }
+
+export function compositeColor(hex,alpha=1){return '#'+rgb(hex).map(v=>Math.round(v*alpha+255*(1-alpha)).toString(16).padStart(2,'0')).join('');}
+export function screenRect(slide,box){const fit=(slide.screenFit==='cover'?Math.max:Math.min)(box.width/slide.width,box.height/slide.height)*(slide.screenScale??1),width=slide.width*fit,height=slide.height*fit;return {x:box.x+(box.width-width)/2+(slide.screenX??0)*Math.max(0,width-box.width)/2,y:box.y+(box.height-height)/2+(slide.screenY??0)*Math.max(0,height-box.height)/2,width,height};}
+function highlightLine(ctx,line,cx,y,phrase,accent,base){const key=(phrase||'').toLocaleLowerCase(),lower=line.toLocaleLowerCase();ctx.textAlign='left';let x=cx-ctx.measureText(line).width/2,pos=0;while(pos<line.length){const match=key?lower.indexOf(key,pos):-1,end=match<0?line.length:match;ctx.fillStyle=base;const plain=line.slice(pos,end);ctx.fillText(plain,x,y);x+=ctx.measureText(plain).width;if(match<0)break;const text=line.slice(match,match+key.length);ctx.fillStyle=accent||'#2563EB';ctx.fillText(text,x,y);x+=ctx.measureText(text).width;pos=match+key.length;}ctx.fillStyle=base;ctx.textAlign='center';}

@@ -1,14 +1,26 @@
 export const hexToRGB=hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
 export const rgbToHex=values=>'#'+values.map(v=>Math.max(0,Math.min(255,Math.round(Number(v)||0))).toString(16).padStart(2,'0')).join('').toUpperCase();
-export function mountColorPicker({dialog,value,onChange,onSample,onClose}){
- const content=dialog.querySelector('#color-content');
- content.innerHTML=`<input class="native-color" type="color" aria-label="Палитра цвета" value="${value}"><label class="hex-label">HEX<input data-hex value="${value.toUpperCase()}" maxlength="7" aria-label="HEX"></label><div class="rgb-fields">${['R','G','B'].map((label,i)=>`<label>${label}<input data-rgb="${i}" aria-label="${label}" type="number" min="0" max="255" value="${hexToRGB(value)[i]}"></label>`).join('')}</div><button class="button eyedropper" type="button">Пипетка</button><p class="picker-help">Нажмите на цвет выше, введите HEX или значения RGB.</p>`;
- const native=content.querySelector('[type=color]'),hex=content.querySelector('[data-hex]'),rgb=[...content.querySelectorAll('[data-rgb]')];
- const apply=(color,source)=>{value=color;native.value=color;if(source!==hex)hex.value=color.toUpperCase();hex.setCustomValidity('');hex.removeAttribute('aria-invalid');rgb.forEach((el,i)=>{if(source!==el)el.value=hexToRGB(color)[i];});onChange(color);};
- native.oninput=()=>apply(native.value,native);
- hex.oninput=()=>{const color='#'+hex.value.replace(/^#/,'');if(/^#[0-9a-f]{6}$/i.test(color))apply(color,hex);else{hex.setCustomValidity('Введите 6 символов HEX');hex.setAttribute('aria-invalid','true');}};
- hex.onblur=()=>{if(!hex.validity.valid){hex.value=value;hex.setCustomValidity('');hex.removeAttribute('aria-invalid');}};
- rgb.forEach(el=>el.oninput=()=>{if(rgb.every(v=>v.value!==''&&v.validity.valid))apply(rgbToHex(rgb.map(v=>v.value)),el);});
+const clamp=(n,min=0,max=1)=>Math.max(min,Math.min(max,n));
+export function rgbToHSV(values){const [r,g,b]=values.map(v=>v/255),max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;let h=0;if(d)h=(max===r?(g-b)/d+(g<b?6:0):max===g?(b-r)/d+2:(r-g)/d+4)*60;return [h,max===0?0:d/max,max];}
+export function hsvToRGB([h,s,v]){const c=v*s,x=c*(1-Math.abs(((h%360)/60)%2-1)),m=v-c;const a=h<60?[c,x,0]:h<120?[x,c,0]:h<180?[0,c,x]:h<240?[0,x,c]:h<300?[x,0,c]:[c,0,x];return a.map(n=>Math.round((n+m)*255));}
+export function hsvToHSL([h,s,v]){const l=v*(1-s/2);return [h,l===0||l===1?0:(v-l)/Math.min(l,1-l),l];}
+export function hslToHSV([h,s,l]){const v=l+s*Math.min(l,1-l);return [h,v===0?0:2*(1-l/v),v];}
+export function mountColorPicker({dialog,value,opacity=1,allowOpacity=false,onChange,onOpacity,onSample,onClose}){
+ const content=dialog.querySelector('#color-content');let hsv=rgbToHSV(hexToRGB(value)),mode='HEX',pointer=null;
+ content.innerHTML=`<div class="sv-plane" role="group" aria-label="Насыщенность и яркость"><span class="sv-cursor"></span></div><div class="sv-access"><label>Насыщенность<input data-saturation aria-label="Насыщенность" type="range" min="0" max="100"></label><label>Яркость<input data-value aria-label="Яркость" type="range" min="0" max="100"></label></div><input class="hue-bar" aria-label="Оттенок" data-hue type="range" min="0" max="359" step="1">${allowOpacity?'<label class="alpha-label">Непрозрачность <output data-alpha-value></output><input class="alpha-bar" data-alpha aria-label="Непрозрачность" type="range" min="0" max="100"></label>':''}<div class="picker-values"><select data-mode aria-label="Цветовая модель"><option>HEX</option><option>RGB</option><option>HSL</option></select><div data-fields></div></div><button class="button eyedropper" type="button">Пипетка</button>`;
+ const plane=content.querySelector('.sv-plane'),cursor=content.querySelector('.sv-cursor'),fields=content.querySelector('[data-fields]');
+ function fieldsHTML(){const nums=mode==='RGB'?hexToRGB(value):hsvToHSL(hsv).map((v,i)=>Math.round(i?v*100:v));fields.innerHTML=mode==='HEX'?`<input data-hex aria-label="HEX" value="${value}" maxlength="7">`:nums.map((v,i)=>`<input data-component="${i}" aria-label="${mode[i]}" type="number" min="0" max="${mode==='RGB'?255:i===0?359:100}" value="${v}">`).join('');}
+ function paint(){plane.style.background=`linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,hsl(${hsv[0]} 100% 50%))`;cursor.style.left=hsv[1]*100+'%';cursor.style.top=(1-hsv[2])*100+'%';cursor.style.background=value;content.querySelector('[data-hue]').value=hsv[0];content.querySelector('[data-saturation]').value=hsv[1]*100;content.querySelector('[data-value]').value=hsv[2]*100;if(allowOpacity){content.querySelector('[data-alpha]').value=opacity*100;content.querySelector('[data-alpha-value]').textContent=Math.round(opacity*100)+'%';}}
+ function apply(next,{fromHSV=false,refresh=true}={}){value=next;if(!fromHSV)hsv=rgbToHSV(hexToRGB(value));paint();if(refresh)fieldsHTML();onChange(value);}
+ function choose(e){const r=plane.getBoundingClientRect();hsv[1]=clamp((e.clientX-r.left)/r.width);hsv[2]=1-clamp((e.clientY-r.top)/r.height);apply(rgbToHex(hsvToRGB(hsv)),{fromHSV:true});}
+ plane.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();pointer=e.pointerId;plane.setPointerCapture(pointer);choose(e);};plane.onpointermove=e=>{if(pointer===e.pointerId)choose(e);};plane.onpointerup=plane.onpointercancel=()=>pointer=null;
+ content.querySelector('[data-mode]').onchange=e=>{mode=e.target.value;fieldsHTML();};
+ content.oninput=e=>{const el=e.target;if(el.hasAttribute('data-hue')||el.hasAttribute('data-saturation')||el.hasAttribute('data-value')){const i=el.hasAttribute('data-hue')?0:el.hasAttribute('data-saturation')?1:2;hsv[i]=+el.value/(i?100:1);apply(rgbToHex(hsvToRGB(hsv)),{fromHSV:true});}
+ if(el.hasAttribute('data-alpha')){opacity=+el.value/100;paint();onOpacity?.(opacity);}
+ if(el.hasAttribute('data-hex')){const hex='#'+el.value.replace(/^#/,'');const valid=/^#[0-9a-f]{6}$/i.test(hex);el.setAttribute('aria-invalid',String(!valid));if(valid)apply(hex.toUpperCase(),{refresh:false});}
+ if(el.hasAttribute('data-component')){const inputs=[...fields.querySelectorAll('input')];if(inputs.every(x=>x.value!==''&&x.validity.valid)){let nums=inputs.map(x=>+x.value);if(mode==='HSL'){hsv=hslToHSV(nums.map((v,i)=>i?v/100:v));nums=hsvToRGB(hsv);}apply(rgbToHex(nums),{fromHSV:mode==='HSL',refresh:false});}}
+ };
+ fields.onfocusout=e=>{if(e.target.getAttribute('aria-invalid')==='true'){e.target.value=value;e.target.removeAttribute('aria-invalid');}};
  content.querySelector('.eyedropper').onclick=async()=>{dialog.close();if('EyeDropper' in window){try{const result=await new EyeDropper().open();onChange(result.sRGBHex);onClose?.();}catch(e){if(e.name!=='AbortError')onSample();}}else onSample();};
- dialog.onclose=()=>onClose?.();dialog.showModal();
+ dialog.onclose=()=>onClose?.();fieldsHTML();paint();dialog.showModal();
 }

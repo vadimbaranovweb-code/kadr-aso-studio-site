@@ -8,4 +8,12 @@ export const ANDROID_DEVICES={
 };
 export const DEFAULT_ANDROID_DEVICE='galaxy-s26-ultra';
 const IPHONE={name:'iPhone',ratio:2868/1320,radius:.14,padding:9,body:'#1B2027',metal:['#69727C','#D5D9DE','#5C6570','#A3ABB5','#414A54'],buttons:[[.24,.1]],island:true};
-export function deviceFor(project){return project.store==='apple'?IPHONE:ANDROID_DEVICES[project.androidDevice||'android-generic']||ANDROID_DEVICES['android-generic'];}
+export const IPHONE_DEVICES={
+ 'iphone-17':{...IPHONE,name:'iPhone 17',ratio:2622/1206,padding:7,radius:.145,body:'#303132'},
+ 'iphone-17-pro':{...IPHONE,name:'iPhone 17 Pro',ratio:2622/1206,padding:7,radius:.145,body:'#AAAEB4',metal:['#969CA4','#F5F6F7','#666D75','#DADDE0','#777E85']},
+ 'iphone-17-pro-max':{...IPHONE,name:'iPhone 17 Pro Max',padding:6.5,radius:.14,body:'#D07646',metal:['#B45E30','#F5BA83','#8C4727','#E3A06C','#A15B34']},
+ 'iphone-air':{...IPHONE,name:'iPhone Air',ratio:2736/1260,padding:6,radius:.135,body:'#ADC0D2',metal:['#8197AB','#E1EFFB','#647D91','#CFDFED','#7992A7']},
+ 'iphone-16-pro':{...IPHONE,name:'iPhone 16 Pro',ratio:2622/1206,padding:7.5,radius:.145,body:'#A2988A',metal:['#928A7D','#DDD6C9','#6B6359','#B7ADA0','#82786B']},
+ 'iphone-generic':{...IPHONE,legacy:true}
+};
+export function deviceFor(project){return project.store==='apple'?(IPHONE_DEVICES[project.iphoneDevice]||IPHONE):ANDROID_DEVICES[project.androidDevice||'android-generic']||ANDROID_DEVICES['android-generic'];}
