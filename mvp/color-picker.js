@@ -1,3 +1,4 @@
+import {preserveTextSelection} from './selection-preview.js';
 export const hexToRGB=hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
 export const rgbToHex=values=>'#'+values.map(v=>Math.max(0,Math.min(255,Math.round(Number(v)||0))).toString(16).padStart(2,'0')).join('').toUpperCase();
 const clamp=(n,min=0,max=1)=>Math.max(min,Math.min(max,n));
@@ -5,9 +6,9 @@ export function rgbToHSV(values){const [r,g,b]=values.map(v=>v/255),max=Math.max
 export function hsvToRGB([h,s,v]){const c=v*s,x=c*(1-Math.abs(((h%360)/60)%2-1)),m=v-c;const a=h<60?[c,x,0]:h<120?[x,c,0]:h<180?[0,c,x]:h<240?[0,x,c]:h<300?[x,0,c]:[c,0,x];return a.map(n=>Math.round((n+m)*255));}
 export function hsvToHSL([h,s,v]){const l=v*(1-s/2);return [h,l===0||l===1?0:(v-l)/Math.min(l,1-l),l];}
 export function hslToHSV([h,s,l]){const v=l+s*Math.min(l,1-l);return [h,v===0?0:2*(1-l/v),v];}
-export function mountColorPicker({dialog,anchor,value,opacity=1,allowOpacity=false,onChange,onOpacity,onSample,onClose,decoration,onDecoration,onReset}){
- const events=new AbortController(),signal=events.signal;let closed=false;
- const close=({focus=false}={})=>{if(closed)return;closed=true;events.abort();dialog.onclose=null;if(dialog.open)dialog.close();anchor?.setAttribute('aria-expanded','false');if(focus&&anchor?.isConnected)anchor.focus({preventScroll:true});onClose?.();};
+export function mountColorPicker({dialog,anchor,value,opacity=1,allowOpacity=false,onChange,onOpacity,onSample,onClose,decoration,onDecoration,onReset,keepSelection=false}){
+ const events=new AbortController(),signal=events.signal,selection=keepSelection?preserveTextSelection(anchor):null;let closed=false;
+ const close=({focus=false}={})=>{if(closed)return;closed=true;events.abort();dialog.onclose=null;dialog.removeAttribute('open');anchor?.setAttribute('aria-expanded','false');if(focus&&anchor?.isConnected){if(selection)selection.restore();else anchor.focus({preventScroll:true});}selection?.dispose();onClose?.();};
  const content=dialog.querySelector('#color-content');let hsv=rgbToHSV(hexToRGB(value)),mode='HEX',pointer=null;
  content.innerHTML=`<div class="sv-plane" role="group" aria-label="Насыщенность и яркость"><span class="sv-cursor"></span></div><div class="sv-access"><label>Насыщенность<input data-saturation aria-label="Насыщенность" type="range" min="0" max="100"></label><label>Яркость<input data-value aria-label="Яркость" type="range" min="0" max="100"></label></div><input class="hue-bar" aria-label="Оттенок" data-hue type="range" min="0" max="359" step="1">${allowOpacity?'<label class="alpha-label">Непрозрачность <output data-alpha-value></output><input class="alpha-bar" data-alpha aria-label="Непрозрачность" type="range" min="0" max="100"></label>':''}<div class="picker-values"><select data-mode aria-label="Цветовая модель"><option>HEX</option><option>RGB</option><option>HSL</option></select><div data-fields></div></div><button class="button eyedropper" type="button">Пипетка</button>`;
  if(decoration){
@@ -33,8 +34,9 @@ export function mountColorPicker({dialog,anchor,value,opacity=1,allowOpacity=fal
  };
  fields.onfocusout=e=>{if(e.target.getAttribute('aria-invalid')==='true'){e.target.value=value;e.target.removeAttribute('aria-invalid');}};
  content.querySelector('.eyedropper').onclick=async()=>{close();if('EyeDropper' in window){try{const result=await new EyeDropper().open();onChange(result.sRGBHex);}catch(e){if(e.name!=='AbortError')onSample();}}else onSample();};
- fieldsHTML();paint();dialog.show();anchor?.setAttribute('aria-expanded','true');
+ fieldsHTML();paint();dialog.setAttribute('open','');anchor?.setAttribute('aria-expanded','true');
  const header=dialog.querySelector('header'),bounds=anchor?.getBoundingClientRect();
+ if(keepSelection)dialog.addEventListener('pointerdown',e=>{if(e.target.closest('button'))e.preventDefault();},{signal});
  function position(x,y){const width=dialog.offsetWidth,height=dialog.offsetHeight;dialog.style.left=Math.max(12,Math.min(x,innerWidth-width-12))+'px';dialog.style.top=Math.max(12,Math.min(y,innerHeight-height-12))+'px';}
  // A nonmodal, movable inspector: no backdrop and no focus trap.
  position(bounds?(bounds.right+12+dialog.offsetWidth<=innerWidth?bounds.right+12:bounds.left-dialog.offsetWidth-12):24,bounds?.top??100);

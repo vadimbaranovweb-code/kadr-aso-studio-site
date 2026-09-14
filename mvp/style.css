@@ -95,3 +95,43 @@ select:hover:not(:disabled){border-color:#a4b1c2}select:focus-visible{outline:2p
 .accent-radius output{color:var(--muted);font-variant-numeric:tabular-nums}
 .color-dialog:has(.accent-modes) .sv-plane{height:150px}
 .color-dialog .accent-modes button{font-size:13px;min-height:34px}
+
+/* Selection stays visible while HEX/range controls have focus. */
+.selection-ghost{position:absolute;pointer-events:none;z-index:3;overflow:hidden;color:transparent;-webkit-text-fill-color:transparent;user-select:none;outline:0!important;background:transparent}
+.selection-ghost span{background:#1768df40;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.copy-controls{display:grid;gap:8px}
+.copy-controls .generate-copy{font-size:13px;padding:10px;line-height:1.4;width:100%}
+.copy-controls .control-hint{margin:0}
+.settings-content .field-label{margin:0}
+.color-stops .color-chip{min-height:38px}
+.export-page{max-width:1520px;margin:24px auto;padding:0 28px 40px}
+.export-page .editor-heading{padding:0 0 22px;margin-bottom:18px;border-bottom:1px solid var(--line)}
+.export-page h1{font-size:28px;margin:0}
+.export-grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:28px;align-items:start}
+.export-settings{display:grid;gap:16px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:0 18px 18px}
+.export-settings .control-section{padding:18px 0;margin:0}
+.export-settings select,.generation-language select{appearance:none;min-height:40px;border:1px solid var(--line);border-radius:9px;padding:9px 30px 9px 12px;background:#fff;color:var(--ink);font:inherit;font-size:13px;max-width:100%}
+.export-languages{display:grid;gap:4px;max-height:280px;overflow:auto}
+.export-languages label{display:flex;align-items:center;gap:9px;min-height:36px;font-size:13px;cursor:pointer}
+.export-languages input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.export-languages small{margin-left:auto;color:var(--muted);font-size:11px}
+.export-review{min-width:0;display:grid;gap:14px}
+.locale-review-tabs,.proposal-locales{display:flex;gap:6px;flex-wrap:wrap}
+.locale-review-tabs [aria-pressed=true],.proposal-locales [aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.export-review .preview-well{min-height:0}
+.export-review .preview-row canvas{width:220px;flex:none}
+.export-settings .download-ready{display:grid;gap:8px;margin:0;padding:12px}
+.export-settings .download-ready p{margin:0;font-size:13px}
+.key-dialog{width:min(480px,calc(100vw - 32px))!important}
+.copy-dialog{width:min(960px,calc(100vw - 32px))!important;max-height:calc(100dvh - 32px);padding:24px;overflow:auto}
+.generation-language{display:flex!important;align-items:center;gap:12px;font-size:14px}
+.ai-dialog .dialog-heading h2{font-size:22px}
+.copy-preview-row{display:flex;gap:18px;overflow-x:auto;align-items:flex-start;padding:8px 4px 20px;min-width:0}
+.copy-preview-frame{position:relative;flex:0 0 245px;width:245px;box-shadow:0 4px 14px #17243518}
+.copy-preview-frame canvas{display:block;width:100%;height:auto}
+.copy-preview-frame textarea{position:absolute!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;font-family:Arial,Helvetica,sans-serif!important;text-align:center;resize:none;overflow:hidden;white-space:pre-wrap;overflow-wrap:break-word;min-height:0!important;-webkit-text-fill-color:transparent}
+.copy-preview-frame textarea.focused{-webkit-text-fill-color:currentColor;outline:1px solid var(--accent)}
+.proposal-actions{position:sticky;bottom:-24px;padding:14px 0;background:#fff;border-top:1px solid var(--line);margin-top:0!important}
+@media(max-width:820px){.export-grid{grid-template-columns:1fr}.export-page{padding:0 16px 28px}.export-page .editor-heading{flex-wrap:wrap;gap:16px}.export-settings{order:1}.export-review{order:0}.export-review .preview-well{max-height:400px;overflow:auto}.export-review .preview-row canvas{width:150px}.copy-preview-frame{flex-basis:215px;width:215px}}
+
+.selection-with-picker:not(:focus)::selection{background:transparent}
