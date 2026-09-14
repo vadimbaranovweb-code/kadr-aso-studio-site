@@ -1,4 +1,5 @@
 import {marksFor,markedLines} from './text-marks.js';
+import {screenFor} from './screen-assets.js';
 import {formatFor} from './model.js';
 import {deviceFor} from './devices.js';
 const round=(ctx,x,y,w,h,r)=>{ctx.beginPath();ctx.roundRect(x,y,w,h,r);};
@@ -26,14 +27,21 @@ function fitText(ctx,text,{width,size,minSize,maxLines,weight}){
   do{ctx.font=`${weight} ${size}px Arial`;lines=wrap(ctx,text,width);if(lines.length<=maxLines)break;size--;}while(size>=minSize);
   return {lines,size:Math.max(size,minSize),overflow:lines.length>maxLines};
 }
-export function frameLayout(ctx,project,slide){
-  const store=formatFor(project),w=440,h=440*store.height/store.width;
+function textLayout(ctx,project,slide){
+  const w=440;
   const title=fitText(ctx,slide.title,{width:w-64,size:slide.titleSize??34,minSize:slide.titleSize&&slide.titleSize!==34?slide.titleSize:21,maxLines:3,weight:700});
   const sub=fitText(ctx,project.subtitleEnabled?slide.subtitle:'',{width:w-72,size:slide.subtitleSize??17,minSize:slide.subtitleSize&&slide.subtitleSize!==17?slide.subtitleSize:13,maxLines:3,weight:400});
   const titleY=48,titleHeight=slide.title?title.lines.length*title.size*1.15:0;
   const subtitleY=titleY+titleHeight+(titleHeight?15:0);
   const subtitleHeight=project.subtitleEnabled&&slide.subtitle?sub.lines.length*sub.size*1.35:0;
   const textBottom=subtitleY+subtitleHeight;
+  return {title,sub,titleY,titleHeight,subtitleY,subtitleHeight,textBottom};
+}
+export function frameLayout(ctx,project,slide){
+  slide=screenFor(slide,project.locale);
+  const store=formatFor(project),w=440,h=440*store.height/store.width;
+  const text=textLayout(ctx,project,slide),{title,sub,titleY,titleHeight,subtitleY,subtitleHeight}=text;
+  const textBottom=project.phoneAlignment==='shared'?Math.max(text.textBottom,...project.slides.map(s=>textLayout(ctx,project,s).textBottom)):text.textBottom;
   const top=Math.max(h*.28,textBottom+30);
   const device=deviceFor(project);
   const ratio=project.frame==='none'?slide.height/slide.width:project.frame==='device'?device.ratio:project.store==='apple'?2868/1320:20/9;
@@ -45,6 +53,7 @@ export function frameLayout(ctx,project,slide){
   return {w,h,title,sub,titleY,subtitleY,titleHeight,subtitleHeight,phone:{x:(w-width)/2,y,width,height,padding,ratio},overflow:title.overflow||sub.overflow};
 }
 export function renderSlide(canvas,project,slide,image,index=0,{scale=1,hideText=null}={}){
+  slide=screenFor(slide,project.locale);
   const spec=formatFor(project);canvas.width=Math.round(spec.width*scale);canvas.height=Math.round(spec.height*scale);
   const ctx=canvas.getContext('2d'),factor=canvas.width/440;
   ctx.setTransform(factor,0,0,factor,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';

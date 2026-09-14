@@ -135,3 +135,36 @@ select:hover:not(:disabled){border-color:#a4b1c2}select:focus-visible{outline:2p
 @media(max-width:820px){.export-grid{grid-template-columns:1fr}.export-page{padding:0 16px 28px}.export-page .editor-heading{flex-wrap:wrap;gap:16px}.export-settings{order:1}.export-review{order:0}.export-review .preview-well{max-height:400px;overflow:auto}.export-review .preview-row canvas{width:150px}.copy-preview-frame{flex-basis:215px;width:215px}}
 
 .selection-with-picker:not(:focus)::selection{background:transparent}
+
+/* AI is separate from typography; locale editing is part of the same project. */
+.ai-controls{display:grid;gap:10px}
+.ai-controls>.button{font-size:12px;min-height:38px;line-height:1.4;width:100%}
+.ai-controls .control-hint{margin:0}
+.ai-connection{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.ai-connection .button{margin-left:auto;padding:4px 7px;min-height:28px;font-size:11px}
+.connection-dot{width:6px;height:6px;border-radius:50%;background:#19846A}
+.align-phones{font-size:12px;gap:12px}
+.localization-dialog{width:min(980px,calc(100vw - 32px))!important;max-height:calc(100dvh - 32px);overflow:auto;padding:24px}
+.localization-dialog fieldset{margin:16px 0;padding:0;border:0;min-width:0}
+.localization-dialog legend,.localization-dialog .scope-label{font-size:14px;font-weight:650;margin:16px 0 10px}
+.ai-language-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}
+.localization-dialog .ai-language-grid label{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:9px;padding:10px;font-size:13px;cursor:pointer}
+.localization-dialog input[type=checkbox]{width:16px!important;min-height:16px!important;height:16px!important;flex:none;margin:0;accent-color:var(--accent)}
+.localization-dialog .ai-scope{display:flex;align-items:flex-start;gap:10px;margin:14px 0;font-size:14px}
+.ai-scope span{display:grid;gap:5px}
+.ai-scope small{color:var(--muted);font-size:12px;font-weight:400}
+.localization-dialog .image-quality{display:flex;align-items:center;gap:12px;max-width:520px;font-size:13px;margin:16px 0}
+.localization-dialog select{min-height:38px;border:1px solid var(--line);border-radius:9px;padding:8px 28px 8px 12px;font:inherit;background:#fff;max-width:100%}
+.localization-dialog [hidden]{display:none!important}
+.ai-model-details{font-size:11px!important;overflow-wrap:anywhere}
+.interface-comparison h3{font-size:17px;margin:20px 0 8px}
+.interface-review{border:1px solid var(--line);border-radius:12px;padding:14px;margin:16px 0}
+.localization-dialog .interface-review>label{display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:12px}
+.image-compare-pair{display:flex;gap:16px;overflow:auto;max-height:660px;align-items:flex-start;background:#F4F5F7;padding:14px;border-radius:8px}
+.image-compare-pair button{flex:1;min-width:0;background:none;border:0;padding:0;cursor:zoom-in;display:grid;gap:8px;justify-items:center;font-size:12px;color:var(--muted)}
+.image-compare-pair img{display:block;width:100%;max-width:290px;height:auto}
+.image-compare-pair.zoomed button{flex:none;min-width:400px;cursor:zoom-out}
+.image-compare-pair.zoomed img{max-width:none;width:auto;max-height:none}
+.localization-dialog .review-confirmation{display:flex;align-items:center;gap:10px;font-size:14px;padding:16px 0}
+.slide-footer{flex-wrap:wrap;gap:8px}
+@media(max-width:650px){.localization-dialog{padding:16px}.ai-language-grid{grid-template-columns:1fr 1fr}.image-compare-pair{gap:10px;padding:8px}.localization-dialog .image-quality{flex-wrap:wrap}.localization-dialog .proposal-actions{bottom:-16px}}
