@@ -1,5 +1,5 @@
 import {ANDROID_DEVICES,IPHONE_DEVICES,DEFAULT_ANDROID_DEVICE} from './devices.js';
-export const VERSION='0.4.1';
+export const VERSION='0.4.2';
 export const STORES={
   apple:{name:'App Store',width:1320,height:2868,phone:'iPhone',min:1,max:10},
   android:{name:'Android · RuStore / Google Play',width:1080,height:1920,phone:'Android',min:1,max:10}
