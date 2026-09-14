@@ -85,3 +85,13 @@ select:hover:not(:disabled){border-color:#a4b1c2}select:focus-visible{outline:2p
 @media(max-width:1050px){.editor-grid{grid-template-columns:290px minmax(0,1fr)}.settings{padding:18px 14px}.ai-toolbar{gap:8px;padding:10px 12px}.ai-toolbar .add-screens{margin-left:0}}
 @media(max-width:850px){.setup:has(.compact-heading){display:flex;flex-direction:column;padding:0 20px;gap:20px}.setup:has(.compact-heading) .setup-content{padding:0;width:100%}.setup:has(.compact-heading) .preview-well{position:static;width:100%}.setup:has(.compact-heading) .setup-controls{display:grid;grid-template-columns:1fr 1fr;gap:20px}.setup-controls .control-section:last-child{grid-column:1/-1}.ai-toolbar label{flex-wrap:wrap}.ai-toolbar{gap:8px}.ai-toolbar select{max-width:195px}}
 @media(max-width:740px){.settings .settings-title{display:none}.settings{padding:14px 16px}.settings-content{padding-top:16px}.stage{min-height:560px}.filmstrip{min-height:570px;padding:20px 16px}.ai-toolbar .add-screens{margin-left:0}.setup:has(.compact-heading) .setup-controls{display:block}.control-section{padding:16px 0}.color-dialog{width:290px!important}.export-actions .button{font-size:12px;padding:8px 10px}.editor-heading{flex-wrap:wrap}.project-name{font-size:20px}.header-actions{flex-wrap:wrap;justify-content:flex-end}.version{white-space:nowrap}.site-header{flex-wrap:wrap;gap:10px}.save-status{order:3;width:100%}}
+
+/* The native textarea owns caret/selection; the shared canvas paints styled glyphs. */
+.inline-text{-webkit-text-fill-color:transparent;caret-color:var(--ink)}
+.inline-text::selection{background:#1768df40;-webkit-text-fill-color:transparent}
+.color-dialog #color-title{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:230px}
+.accent-radius{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:13px;color:var(--ink)}
+.accent-radius input{grid-column:1/-1;width:100%;margin:0}
+.accent-radius output{color:var(--muted);font-variant-numeric:tabular-nums}
+.color-dialog:has(.accent-modes) .sv-plane{height:150px}
+.color-dialog .accent-modes button{font-size:13px;min-height:34px}
