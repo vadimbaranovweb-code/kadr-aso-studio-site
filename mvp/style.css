@@ -123,7 +123,7 @@ select:hover:not(:disabled){border-color:#a4b1c2}select:focus-visible{outline:2p
 .export-settings .download-ready{display:grid;gap:8px;margin:0;padding:12px}
 .export-settings .download-ready p{margin:0;font-size:13px}
 .key-dialog{width:min(480px,calc(100vw - 32px))!important}
-.copy-dialog{width:min(960px,calc(100vw - 32px))!important;max-height:calc(100dvh - 32px);padding:24px;overflow:auto}
+.copy-dialog{max-width:calc(100vw - 32px);width:min(960px,calc(100vw - 32px))!important;max-height:calc(100dvh - 32px);padding:24px;overflow:auto}
 .generation-language{display:flex!important;align-items:center;gap:12px;font-size:14px}
 .ai-dialog .dialog-heading h2{font-size:22px}
 .copy-preview-row{display:flex;gap:18px;overflow-x:auto;align-items:flex-start;padding:8px 4px 20px;min-width:0}
@@ -144,7 +144,7 @@ select:hover:not(:disabled){border-color:#a4b1c2}select:focus-visible{outline:2p
 .ai-connection .button{margin-left:auto;padding:4px 7px;min-height:28px;font-size:11px}
 .connection-dot{width:6px;height:6px;border-radius:50%;background:#19846A}
 .align-phones{font-size:12px;gap:12px}
-.localization-dialog{width:min(980px,calc(100vw - 32px))!important;max-height:calc(100dvh - 32px);overflow:auto;padding:24px}
+.localization-dialog{max-width:calc(100vw - 32px);width:min(980px,calc(100vw - 32px))!important;max-height:calc(100dvh - 32px);overflow:auto;padding:24px}
 .localization-dialog fieldset{margin:16px 0;padding:0;border:0;min-width:0}
 .localization-dialog legend,.localization-dialog .scope-label{font-size:14px;font-weight:650;margin:16px 0 10px}
 .ai-language-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}
