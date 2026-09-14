@@ -5,7 +5,9 @@ export function rgbToHSV(values){const [r,g,b]=values.map(v=>v/255),max=Math.max
 export function hsvToRGB([h,s,v]){const c=v*s,x=c*(1-Math.abs(((h%360)/60)%2-1)),m=v-c;const a=h<60?[c,x,0]:h<120?[x,c,0]:h<180?[0,c,x]:h<240?[0,x,c]:h<300?[x,0,c]:[c,0,x];return a.map(n=>Math.round((n+m)*255));}
 export function hsvToHSL([h,s,v]){const l=v*(1-s/2);return [h,l===0||l===1?0:(v-l)/Math.min(l,1-l),l];}
 export function hslToHSV([h,s,l]){const v=l+s*Math.min(l,1-l);return [h,v===0?0:2*(1-l/v),v];}
-export function mountColorPicker({dialog,value,opacity=1,allowOpacity=false,onChange,onOpacity,onSample,onClose}){
+export function mountColorPicker({dialog,anchor,value,opacity=1,allowOpacity=false,onChange,onOpacity,onSample,onClose}){
+ const events=new AbortController(),signal=events.signal;let closed=false;
+ const close=({focus=false}={})=>{if(closed)return;closed=true;events.abort();dialog.onclose=null;if(dialog.open)dialog.close();anchor?.setAttribute('aria-expanded','false');if(focus&&anchor?.isConnected)anchor.focus({preventScroll:true});onClose?.();};
  const content=dialog.querySelector('#color-content');let hsv=rgbToHSV(hexToRGB(value)),mode='HEX',pointer=null;
  content.innerHTML=`<div class="sv-plane" role="group" aria-label="Насыщенность и яркость"><span class="sv-cursor"></span></div><div class="sv-access"><label>Насыщенность<input data-saturation aria-label="Насыщенность" type="range" min="0" max="100"></label><label>Яркость<input data-value aria-label="Яркость" type="range" min="0" max="100"></label></div><input class="hue-bar" aria-label="Оттенок" data-hue type="range" min="0" max="359" step="1">${allowOpacity?'<label class="alpha-label">Непрозрачность <output data-alpha-value></output><input class="alpha-bar" data-alpha aria-label="Непрозрачность" type="range" min="0" max="100"></label>':''}<div class="picker-values"><select data-mode aria-label="Цветовая модель"><option>HEX</option><option>RGB</option><option>HSL</option></select><div data-fields></div></div><button class="button eyedropper" type="button">Пипетка</button>`;
  const plane=content.querySelector('.sv-plane'),cursor=content.querySelector('.sv-cursor'),fields=content.querySelector('[data-fields]');
@@ -21,6 +23,19 @@ export function mountColorPicker({dialog,value,opacity=1,allowOpacity=false,onCh
  if(el.hasAttribute('data-component')){const inputs=[...fields.querySelectorAll('input')];if(inputs.every(x=>x.value!==''&&x.validity.valid)){let nums=inputs.map(x=>+x.value);if(mode==='HSL'){hsv=hslToHSV(nums.map((v,i)=>i?v/100:v));nums=hsvToRGB(hsv);}apply(rgbToHex(nums),{fromHSV:mode==='HSL',refresh:false});}}
  };
  fields.onfocusout=e=>{if(e.target.getAttribute('aria-invalid')==='true'){e.target.value=value;e.target.removeAttribute('aria-invalid');}};
- content.querySelector('.eyedropper').onclick=async()=>{dialog.close();if('EyeDropper' in window){try{const result=await new EyeDropper().open();onChange(result.sRGBHex);onClose?.();}catch(e){if(e.name!=='AbortError')onSample();}}else onSample();};
- dialog.onclose=()=>onClose?.();fieldsHTML();paint();dialog.showModal();
+ content.querySelector('.eyedropper').onclick=async()=>{close();if('EyeDropper' in window){try{const result=await new EyeDropper().open();onChange(result.sRGBHex);}catch(e){if(e.name!=='AbortError')onSample();}}else onSample();};
+ fieldsHTML();paint();dialog.show();anchor?.setAttribute('aria-expanded','true');
+ const header=dialog.querySelector('header'),bounds=anchor?.getBoundingClientRect();
+ function position(x,y){const width=dialog.offsetWidth,height=dialog.offsetHeight;dialog.style.left=Math.max(12,Math.min(x,innerWidth-width-12))+'px';dialog.style.top=Math.max(12,Math.min(y,innerHeight-height-12))+'px';}
+ // A nonmodal, movable inspector: no backdrop and no focus trap.
+ position(bounds?(bounds.right+12+dialog.offsetWidth<=innerWidth?bounds.right+12:bounds.left-dialog.offsetWidth-12):24,bounds?.top??100);
+ let drag=null;
+ header.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('button'))return;const r=dialog.getBoundingClientRect();drag={id:e.pointerId,x:e.clientX-r.left,y:e.clientY-r.top};header.setPointerCapture(e.pointerId);e.preventDefault();},{signal});
+ header.addEventListener('pointermove',e=>{if(drag?.id===e.pointerId)position(e.clientX-drag.x,e.clientY-drag.y);},{signal});
+ for(const type of ['pointerup','pointercancel'])header.addEventListener(type,()=>drag=null,{signal});
+ dialog.querySelector('[data-close-color]').addEventListener('click',()=>close({focus:true}),{signal});
+ document.addEventListener('pointerdown',e=>{if(!dialog.contains(e.target)&&!anchor?.contains(e.target))close();},{capture:true,signal});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close({focus:true});}},{capture:true,signal});
+ window.addEventListener('resize',()=>{const r=dialog.getBoundingClientRect();position(r.left,r.top);},{signal});
+ dialog.onclose=()=>close();return {close};
 }

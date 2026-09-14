@@ -59,9 +59,9 @@ export function renderSlide(canvas,project,slide,image,index=0,{scale=1,hideText
   const color=project.textColor||textColor(project.background.mode==='solid'?[colors[0]]:colors);
   ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='top';ctx.globalAlpha=project.textOpacity??1;
   ctx.font=`700 ${layout.title.size}px Arial`;
-  if(slide.title&&hideText!=='title')layout.title.lines.forEach((line,i)=>highlightLine(ctx,line,w/2,layout.titleY+i*layout.title.size*1.15,slide.titleHighlight,slide.titleHighlightColor,color));
+  if(slide.title&&hideText!=='title')highlightText(ctx,layout.title.lines,slide.title,w/2,layout.titleY,layout.title.size*1.15,slide.titleHighlight,slide.titleHighlightColor,color);
   ctx.font=`400 ${layout.sub.size}px Arial`;ctx.globalAlpha=.8*(project.textOpacity??1);
-  if(project.subtitleEnabled&&slide.subtitle&&hideText!=='subtitle')layout.sub.lines.forEach((line,i)=>highlightLine(ctx,line,w/2,layout.subtitleY+i*layout.sub.size*1.35,slide.subtitleHighlight,slide.subtitleHighlightColor,color));
+  if(project.subtitleEnabled&&slide.subtitle&&hideText!=='subtitle')highlightText(ctx,layout.sub.lines,slide.subtitle,w/2,layout.subtitleY,layout.sub.size*1.35,slide.subtitleHighlight,slide.subtitleHighlightColor,color);
   ctx.globalAlpha=1;
   const original=deviceFor(project),tint=(color,light)=>'#'+rgb(color).map(v=>Math.round(light>=0?v+(255-v)*light:v*(1+light)).toString(16).padStart(2,'0')).join('');
   const device=project.deviceColor?{...original,body:tint(project.deviceColor,-.45),metal:[.05,.8,-.25,.4,-.4].map(n=>tint(project.deviceColor,n))}:original;
@@ -91,4 +91,15 @@ export function renderSlide(canvas,project,slide,image,index=0,{scale=1,hideText
 
 export function compositeColor(hex,alpha=1){return '#'+rgb(hex).map(v=>Math.round(v*alpha+255*(1-alpha)).toString(16).padStart(2,'0')).join('');}
 export function screenRect(slide,box){const fit=(slide.screenFit==='cover'?Math.max:Math.min)(box.width/slide.width,box.height/slide.height)*(slide.screenScale??1),width=slide.width*fit,height=slide.height*fit;return {x:box.x+(box.width-width)/2+(slide.screenX??0)*Math.max(0,width-box.width)/2,y:box.y+(box.height-height)/2+(slide.screenY??0)*Math.max(0,height-box.height)/2,width,height};}
-function highlightLine(ctx,line,cx,y,phrase,accent,base){const key=(phrase||'').toLocaleLowerCase(),lower=line.toLocaleLowerCase();ctx.textAlign='left';let x=cx-ctx.measureText(line).width/2,pos=0;while(pos<line.length){const match=key?lower.indexOf(key,pos):-1,end=match<0?line.length:match;ctx.fillStyle=base;const plain=line.slice(pos,end);ctx.fillText(plain,x,y);x+=ctx.measureText(plain).width;if(match<0)break;const text=line.slice(match,match+key.length);ctx.fillStyle=accent||'#2563EB';ctx.fillText(text,x,y);x+=ctx.measureText(text).width;pos=match+key.length;}ctx.fillStyle=base;ctx.textAlign='center';}
+// Match in normalized source text, then map each wrapped line back to it.
+// This preserves phrase accents across line breaks and split long words.
+function highlightText(ctx,lines,source,cx,y,lineHeight,phrase,accent,base){
+ const normalized=source.trim().replace(/\s+/g,' '),key=(phrase||'').trim().replace(/\s+/g,' ').toLocaleLowerCase(),lower=normalized.toLocaleLowerCase(),matches=[];
+ if(key)for(let from=0,match;(match=lower.indexOf(key,from))>=0;from=match+key.length)matches.push([match,match+key.length]);
+ let offset=0;ctx.textAlign='left';
+ lines.forEach((line,i)=>{const start=normalized.indexOf(line,offset);if(start>=0)offset=start;const end=offset+line.length,ranges=matches.filter(([a,b])=>a<end&&b>offset);let x=cx-ctx.measureText(line).width/2,pos=0;
+ const draw=(part,color)=>{ctx.fillStyle=color;ctx.fillText(part,x,y+i*lineHeight);x+=ctx.measureText(part).width;};
+ for(const [a,b] of ranges){const left=Math.max(0,a-offset),right=Math.min(line.length,b-offset);draw(line.slice(pos,left),base);draw(line.slice(left,right),accent||'#2563EB');pos=right;}
+ draw(line.slice(pos),base);offset=end;
+ });ctx.fillStyle=base;ctx.textAlign='center';
+}
