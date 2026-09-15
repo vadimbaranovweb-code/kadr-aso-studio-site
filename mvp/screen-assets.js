@@ -6,7 +6,7 @@ export function screenSettings(slide, locale) {
   return locale!=='source' && slide.screens?.[locale] ? slide.screens[locale] : slide;
 }
 export function screenAssets(project) {
-  return project.slides.flatMap(s=>[s,...Object.values(s.screens||{})]);
+  return [...project.slides.flatMap(s=>[s,...Object.values(s.screens||{})]),...(project.background.asset?[project.background.asset]:[])];
 }
 export function putScreen(slide,locale,asset) {
   if(locale==='source')Object.assign(slide,asset);

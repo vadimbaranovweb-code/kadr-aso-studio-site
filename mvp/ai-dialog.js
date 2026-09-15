@@ -1,3 +1,4 @@
+import {createBackgroundDialog} from './background-dialog.js';
 import {createReferenceDialog} from './reference-dialog.js';
 import {LOCALES,cloneProject} from './model.js';
 import {requestCopy,validateCopyResult,COPY_MODEL} from './ai-copy.js';
@@ -5,10 +6,11 @@ import {mountCopyPreview} from './copy-preview.js';
 import {createLocalizationDialog} from './localization-dialog.js';
 import {screenFor} from './screen-assets.js';
 // A single session-only connection serves copy and interface localization.
-export function createAIDialog({getProject,getRevision,getImage,onApply,onLocalize,onReference,onKeyChange}){
+export function createAIDialog({getProject,getRevision,getImage,onApply,onLocalize,onReference,onBackground,onKeyChange}){
  let apiKey='',controller=null,disposePreview=null;
  const modal=document.createElement('dialog');modal.className='ai-dialog';document.body.append(modal);
  const localization=createLocalizationDialog({getProject,getRevision,getImage,getKey:()=>apiKey,onApply:onLocalize});
+ const background=createBackgroundDialog({getProject,getRevision,getImage,getKey:()=>apiKey,onApply:onBackground});
  const reference=createReferenceDialog({getProject,getRevision,getImage,getKey:()=>apiKey,onApply:onReference});
  function close(){controller?.abort();controller=null;disposePreview?.();disposePreview=null;modal.close();modal.replaceChildren();}
  function bindClose(){for(const b of modal.querySelectorAll('[data-close]'))b.onclick=close;}
@@ -27,7 +29,7 @@ export function createAIDialog({getProject,getRevision,getImage,onApply,onLocali
   host.querySelector('[data-remove-key]').onclick=()=>{apiKey='';onKeyChange();};
  }
  function connect(){
-  if(modal.open||localization.isOpen()||reference.isOpen())return;
+  if(modal.open||localization.isOpen()||reference.isOpen()||background.isOpen())return;
   modal.className='ai-dialog key-dialog';
   modal.innerHTML=`<div class="dialog-heading"><h2>Настройки AI</h2><button class="icon-button" data-close aria-label="Закрыть">×</button></div><p>Один ключ для генерации текстов и локализации комплекта.</p><label>OpenAI API key<input type="password" data-key autocomplete="off" spellcheck="false" placeholder="${apiKey?'Заменить текущий ключ':'sk-…'}"></label><p class="help">Ключ остаётся только в памяти вкладки до перезагрузки. Запросы оплачиваются отдельно через ваш API-аккаунт; подписка ChatGPT их не покрывает. Подключение ключа само по себе не отправляет запрос.</p><div class="ai-actions"><button class="button primary" data-save-key disabled>${apiKey?'Заменить ключ':'Подключить'}</button>${apiKey?'<button class="button" data-forget>Удалить ключ</button>':''}<button class="button quiet" data-close>Закрыть</button></div>`;
   const input=modal.querySelector('[data-key]'),save=modal.querySelector('[data-save-key]');
@@ -35,7 +37,8 @@ export function createAIDialog({getProject,getRevision,getImage,onApply,onLocali
   const forget=modal.querySelector('[data-forget]');if(forget)forget.onclick=()=>{apiKey='';close();onKeyChange();};bindClose();modal.showModal();
  }
  function open(options={}){
-  if(modal.open||localization.isOpen()||reference.isOpen())return;if(!apiKey)return connect();
+  if(modal.open||localization.isOpen()||reference.isOpen()||background.isOpen())return;if(!apiKey)return connect();
+  if(options.mode==='background')return background.open(options);
   if(options.mode==='reference')return reference.open();
   if(options.mode==='localize')return localization.open(options);
   const snapshot=cloneProject(getProject()),revision=getRevision();let rows=null,target=snapshot.locale==='source'?'en':snapshot.locale;

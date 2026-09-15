@@ -1,6 +1,8 @@
-import {LOCALES,cloneProject,validateProject,copyOf} from './model.js';
+import {requestBackground,BACKGROUND_MODEL} from './ai-background.js';
+import {deviceFor} from './devices.js';
+import {LOCALES,cloneProject,validateProject,copyOf,formatFor} from './model.js';
 import {screenFor} from './screen-assets.js';
-import {readScreenshot} from './media.js';
+import {readScreenshot,loadImage} from './media.js';
 import {renderSlide} from './render.js';
 import {editMarks} from './text-marks.js';
 import {requestReference,applyReference,REFERENCE_MODEL} from './ai-reference.js';
@@ -13,7 +15,7 @@ export function createReferenceDialog({getProject,getRevision,getImage,getKey,on
  function open(){
   if(modal.open||!getKey())return;
   const snapshot=cloneProject(getProject()),revision=getRevision(),session=++epoch;
-  let refs=[],draft=null,target=snapshot.locale==='source'?'en':snapshot.locale,keepCopy=false,phase=1,loading=false;
+  let refs=[],draft=null,target=snapshot.locale==='source'?'en':snapshot.locale,keepCopy=false,withArtwork=false,backgroundImage=null,phase=1,loading=false;
   function shell(title){
    modal.replaceChildren();const heading=el('div',undefined,'dialog-heading'),dismiss=el('button','×','icon-button');
    dismiss.setAttribute('aria-label','Закрыть сборку по референсу');dismiss.onclick=close;heading.append(el('h2',title),dismiss);
@@ -21,7 +23,7 @@ export function createReferenceDialog({getProject,getRevision,getImage,getKey,on
   }
   function button(text,action,primary=false){const b=el('button',text,'button'+(primary?' primary':''));b.type='button';b.onclick=action;return b;}
   function upload(){
-   phase=1;shell('Собрать по референсу');modal.append(el('p','Добавьте 1–6 вертикальных ASO-скриншотов. AI предложит расположение элементов, палитру, акценты и простую графику. Ваш интерфейс останется отдельным изображением.','help'));
+   phase=1;shell('Собрать по референсу');modal.append(el('p','Добавьте 1–6 вертикальных ASO-скриншотов. AI предложит расположение элементов, палитру, акценты. При желании создаст графический фон. Ваш интерфейс останется отдельным изображением.','help'));
    const grid=el('div',undefined,'reference-thumbnails'),input=el('input'),status=el('p',undefined,'help'),add=button('Добавить референсы',()=>input.click()),next=button('Далее',settings,true);
    input.type='file';input.accept='image/png,image/jpeg,image/webp';input.multiple=true;input.hidden=true;status.setAttribute('role','status');
    function refresh(){
@@ -43,16 +45,24 @@ export function createReferenceDialog({getProject,getRevision,getImage,getKey,on
    phase=2;shell('Анализ и сборка');const options=el('fieldset'),label=el('label','Язык заголовков'),language=el('select');
    language.setAttribute('aria-label','Язык заголовков по референсу');for(const [code,name] of Object.entries(LOCALES).filter(([l])=>l!=='source')){const option=el('option',name);option.value=code;option.selected=code===target;language.append(option);}language.onchange=()=>target=language.value;label.append(language);
    const keep=el('label',undefined,'reference-keep'),check=el('input');check.type='checkbox';check.checked=keepCopy;check.onchange=()=>keepCopy=check.checked;keep.append(check,el('span','Сохранить мои заголовки и подзаголовки'));
-   const consent=el('p','В OpenAI отправятся '+refs.length+' референсов и '+snapshot.slides.length+' ваших экранов. Один платный запрос через ваш API-аккаунт ('+REFERENCE_MODEL+'). Результат появится для проверки перед применением.','ai-consent');
-   options.append(label,keep);modal.append(options,consent);
+   const artwork=el('label',undefined,'reference-keep'),art=el('input');art.type='checkbox';art.checked=withArtwork;art.onchange=()=>{withArtwork=art.checked;settings();};artwork.append(art,el('span','Создать графический фон по референсу'));
+   const consent=el('p','В OpenAI отправятся '+refs.length+' референсов и '+snapshot.slides.length+' ваших экранов. '+(withArtwork?'Два платных запроса: анализ ('+REFERENCE_MODEL+') и фон ('+BACKGROUND_MODEL+').':'Один платный запрос: анализ ('+REFERENCE_MODEL+').')+' Через ваш API-аккаунт. Результат появится для проверки перед применением.','ai-consent');
+   options.append(label,keep,artwork);modal.append(options,consent);
    const status=el('p');status.setAttribute('role','status');const run=button('Собрать по референсу',generate,true),back=button('Назад к референсам',upload),actions=el('div',undefined,'ai-actions');actions.append(back,run);modal.append(actions,status);
    async function generate(){
-    if(controller)return;controller=new AbortController();const current=controller,timer=setTimeout(()=>current.abort(),180000);run.disabled=true;back.disabled=true;options.disabled=true;status.textContent='Анализируем оформление и собираем кадры… Закройте окно, чтобы отменить.';
+    if(controller)return;controller=new AbortController();const current=controller,timer=setTimeout(()=>current.abort(),480000);run.disabled=true;back.disabled=true;options.disabled=true;status.textContent='Анализируем оформление и собираем кадры… Закройте окно, чтобы отменить.';
     try{
      const slides=snapshot.slides.map(s=>{const asset=screenFor(s,snapshot.locale),image=getImage(asset.image);if(!image)throw new Error('Не удалось подготовить ваш экран.');return {id:s.id,image:prepare(image,asset.width,asset.height)};});
-     const plan=await requestReference({key:getKey(),slides,references:refs.map(r=>r.data),locale:target,subtitleEnabled:snapshot.subtitleEnabled,signal:current.signal});
+     const plan=await requestReference({key:getKey(),slides,references:refs.map(r=>r.data),locale:target,subtitleEnabled:snapshot.subtitleEnabled,canvasHeight:440*formatFor(snapshot).height/formatFor(snapshot).width,deviceRatio:deviceFor(snapshot).ratio,signal:current.signal});
      if(epoch!==session||controller!==current||current.signal.aborted)return;
-     draft=applyReference(snapshot,plan);
+     draft=applyReference(snapshot,plan);backgroundImage=null;
+     if(withArtwork){
+      status.textContent='Композиция готова. Создаём графический фон по референсам…';
+      const data=await requestBackground({key:getKey(),prompt:plan.backgroundPrompt,quality:'xhigh',references:refs.map(r=>r.data),signal:current.signal});
+      if(epoch!==session||controller!==current||current.signal.aborted)return;
+      backgroundImage=await loadImage(data);if(epoch!==session||controller!==current||current.signal.aborted)return;
+      draft.background={...draft.background,mode:'image',asset:{image:data,width:backgroundImage.naturalWidth,height:backgroundImage.naturalHeight}};draft=validateProject(draft);
+     }
      if(keepCopy)for(const [i,s] of draft.slides.entries()){Object.assign(s,copyOf(snapshot.slides[i]));s.copies[draft.locale]=copyOf(s);}
      preview(plan.summary);
     }catch(e){if(epoch===session)status.textContent=e.message;}
@@ -64,7 +74,7 @@ export function createReferenceDialog({getProject,getRevision,getImage,getKey,on
    const row=el('div',undefined,'reference-preview-row'),status=el('p');status.setAttribute('role','status');
    const cards=draft.slides.map((s,i)=>{
     const card=el('div',undefined,'reference-preview-card'),canvas=el('canvas');canvas.setAttribute('aria-label','Композиция по референсу '+(i+1));card.append(canvas);
-    const paint=()=>renderSlide(canvas,draft,s,getImage(screenFor(s,draft.locale).image),i,{scale:.24});
+    const paint=()=>renderSlide(canvas,draft,s,getImage(screenFor(s,draft.locale).image),i,{scale:.24,backgroundImage});
     for(const field of ['title',...(draft.subtitleEnabled?['subtitle']:[])]){
      const label=el('label',field==='title'?'Заголовок':'Подзаголовок'),input=el('textarea');input.maxLength=field==='title'?90:160;input.value=s[field];input.setAttribute('aria-label',(field==='title'?'Заголовок':'Подзаголовок')+' референсного кадра '+(i+1));
      input.oninput=()=>{s[field+'Marks']=editMarks(s[field+'Marks'],s[field],input.value);s[field]=input.value;s.copies[draft.locale]=copyOf(s);paint();};label.append(input);card.append(label);

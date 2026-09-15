@@ -1,5 +1,10 @@
+import {renderPhone} from '../phone-renderer.js';
+import {phoneProjection} from '../phone-geometry.js';
+import {PHONE} from '../phone-data.js';
+import {is3D,phoneLayer} from './phone-pose.js';
+import {drawBackgroundImage} from './background.js';
 import {drawDecorations} from './composition.js';
-import {marksFor,markedLines} from './text-marks.js';
+import {marksFor,markedLines,measureMarkedLine} from './text-marks.js';
 import {screenFor} from './screen-assets.js';
 import {formatFor} from './model.js';
 import {deviceFor} from './devices.js';
@@ -31,18 +36,21 @@ function fitText(ctx,text,{width,size,minSize,maxLines,weight}){
 function textLayout(ctx,project,slide){
   const w=440,h=440*formatFor(project).height/formatFor(project).width,c=slide.composition;
   const titleBox=c?{x:c.title.x*w,y:c.title.y*h,width:c.title.width*w,align:c.title.align}:null,subBox=c?{x:c.subtitle.x*w,y:c.subtitle.y*h,width:c.subtitle.width*w,align:c.subtitle.align}:null;
-  const title=fitText(ctx,slide.title,{width:titleBox?.width??w-64,size:slide.titleSize??34,minSize:slide.titleSize&&slide.titleSize!==34?slide.titleSize:21,maxLines:3,weight:700});
-  const sub=fitText(ctx,project.subtitleEnabled?slide.subtitle:'',{width:subBox?.width??w-72,size:slide.subtitleSize??17,minSize:slide.subtitleSize&&slide.subtitleSize!==17?slide.subtitleSize:13,maxLines:3,weight:400});
-  const titleY=titleBox?.y??48,titleHeight=slide.title?title.lines.length*title.size*1.15:0;
+  const pillSpace=field=>Math.min(80,marksFor(slide,field).filter(m=>m.style==='pill').length*16);
+  const title=fitText(ctx,slide.title,{width:Math.max(20,(titleBox?.width??w-64)-pillSpace('title')),size:slide.titleSize??34,minSize:slide.titleSize&&slide.titleSize!==34?slide.titleSize:21,maxLines:3,weight:700});
+  const sub=fitText(ctx,project.subtitleEnabled?slide.subtitle:'',{width:Math.max(20,(subBox?.width??w-72)-pillSpace('subtitle')),size:slide.subtitleSize??17,minSize:slide.subtitleSize&&slide.subtitleSize!==17?slide.subtitleSize:13,maxLines:3,weight:400});
+  title.lineHeight=marksFor(slide,'title').some(m=>m.style==='pill')?Math.max(title.size*1.15,title.size+12):title.size*1.15;
+  sub.lineHeight=marksFor(slide,'subtitle').some(m=>m.style==='pill')?Math.max(sub.size*1.35,sub.size+12):sub.size*1.35;
+  const titleY=titleBox?.y??48,titleHeight=slide.title?title.lines.length*title.lineHeight:0;
   const subtitleY=subBox?.y??(titleY+titleHeight+(titleHeight?15:0));
-  const subtitleHeight=project.subtitleEnabled&&slide.subtitle?sub.lines.length*sub.size*1.35:0;
+  const subtitleHeight=project.subtitleEnabled&&slide.subtitle?sub.lines.length*sub.lineHeight:0;
   const textBottom=subtitleY+subtitleHeight;
   return {title,sub,titleY,titleHeight,subtitleY,subtitleHeight,textBottom,titleBox:titleBox||{x:32,y:titleY,width:w-64,align:'center'},subBox:subBox||{x:36,y:subtitleY,width:w-72,align:'center'}};
 }
-export function frameLayout(ctx,project,slide){
+function baseFrameLayout(ctx,project,slide){
   slide=screenFor(slide,project.locale);
   if(project.phoneAlignment==='shared'&&project.slides.some(s=>s.composition)){
-    const separate={...project,phoneAlignment:'text'},own=frameLayout(ctx,separate,slide),peers=project.slides.map(s=>frameLayout(ctx,separate,s));
+    const separate={...project,phoneAlignment:'text'},own=baseFrameLayout(ctx,separate,slide),peers=project.slides.map(s=>baseFrameLayout(ctx,separate,s));
     const width=Math.min(...peers.map(l=>l.phone.width)),y=Math.max(...peers.map(l=>l.phone.y)),p=own.phone;
     return {...own,phone:{...p,x:p.x+p.width/2-width/2,y,width,height:(width-2*p.padding)*p.ratio+2*p.padding}};
   }
@@ -65,27 +73,47 @@ export function frameLayout(ctx,project,slide){
   const y=project.phoneScale!=null?Math.max(textBottom+24,top+h*(project.phoneY??0)):project.layout==='crop'?Math.max(textBottom+24,top-h*(project.cropRaise??0)):top;
   return {w,h,...text,phone:{x:(w-width)/2,y,width,height,padding,ratio},overflow:title.overflow||sub.overflow};
 }
-export function renderSlide(canvas,project,slide,image,index=0,{scale=1,hideText=null}={}){
+export function frameLayout(ctx,project,slide){
+ const peers=project.slides.filter(s=>(s.contentOrder||'text-top')===(slide.contentOrder||'text-top'));
+ const l=baseFrameLayout(ctx,{...project,slides:peers.length?peers:project.slides},slide),p=l.phone;
+ p.rotation=slide.phonePose?.rotation??p.rotation??0;
+ if(is3D(project,slide)){p.height=p.width*PHONE.height/PHONE.width;p.ratio=PHONE.height/PHONE.width;}
+ if(slide.contentOrder==='text-bottom'){
+  const top=Math.min(l.titleY,l.subtitleY),bottom=Math.max(l.titleY+l.titleHeight,l.subtitleY+l.subtitleHeight),delta=l.h-top-bottom;
+  l.titleY+=delta;l.subtitleY+=delta;l.titleBox={...l.titleBox,y:l.titleY};l.subBox={...l.subBox,y:l.subtitleY};l.textBottom=bottom+delta;
+  p.y=l.h-p.y-p.height;
+ }
+ if(is3D(project,slide)){
+  const b=phoneProjection(phoneLayer(project,screenFor(slide,project.locale),p.rotation),{x:0,y:0,w:p.width,h:p.height}).bounds;
+  p.hitBounds={x:p.x+b.x,y:p.y+b.y,width:b.w,height:b.h};
+ }
+ return l;
+}
+export function renderSlide(canvas,project,slide,image,index=0,{scale=1,hideText=null,backgroundImage=null}={}){
   slide=screenFor(slide,project.locale);
   const spec=formatFor(project);canvas.width=Math.round(spec.width*scale);canvas.height=Math.round(spec.height*scale);
   const ctx=canvas.getContext('2d'),factor=canvas.width/440;
   ctx.setTransform(factor,0,0,factor,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
   const layout=frameLayout(ctx,project,slide),{w,h,phone:p}=layout;
   const count=Math.max(1,project.slides.length),colors=project.background.colors.map((c,i)=>compositeColor(c,project.background.opacities?.[i]??1));
-  if(project.background.mode==='solid')ctx.fillStyle=colors[0];else{
+  if(project.background.mode!=='gradient')ctx.fillStyle=colors[0];else{
     let gradient;
     if(project.background.angle==null)gradient=ctx.createLinearGradient(-index*w,0,(count-index)*w,h*.35);
     else{const a=project.background.angle*Math.PI/180,dx=Math.cos(a),dy=Math.sin(a),length=Math.abs(count*w*dx)+Math.abs(h*dy),cx=count*w/2-index*w,cy=h/2;gradient=ctx.createLinearGradient(cx-dx*length/2,cy-dy*length/2,cx+dx*length/2,cy+dy*length/2);}
     gradient.addColorStop(0,colors[0]);gradient.addColorStop(1,colors[1]);ctx.fillStyle=gradient;
   }
-  ctx.fillRect(0,0,w,h);drawDecorations(ctx,slide.composition,w,h);
+  ctx.fillRect(0,0,w,h);if(project.background.mode==='image')drawBackgroundImage(ctx,backgroundImage,w,h);drawDecorations(ctx,slide.composition,w,h);
   const color=project.textColor||textColor(project.background.mode==='solid'?[colors[0]]:colors);
   ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='top';ctx.globalAlpha=project.textOpacity??1;
   ctx.font=`700 ${layout.title.size}px Arial`;
-  if(slide.title&&hideText!=='title')highlightText(ctx,layout.title.lines,slide.title,layout.titleBox,layout.titleY,layout.title.size*1.15,marksFor(slide,'title'),color,layout.title.size);
+  if(slide.title&&hideText!=='title')highlightText(ctx,layout.title.lines,slide.title,layout.titleBox,layout.titleY,layout.title.lineHeight,marksFor(slide,'title'),color,layout.title.size);
   ctx.font=`400 ${layout.sub.size}px Arial`;ctx.globalAlpha=.8*(project.textOpacity??1);
-  if(project.subtitleEnabled&&slide.subtitle&&hideText!=='subtitle')highlightText(ctx,layout.sub.lines,slide.subtitle,layout.subBox,layout.subtitleY,layout.sub.size*1.35,marksFor(slide,'subtitle'),color,layout.sub.size);
+  if(project.subtitleEnabled&&slide.subtitle&&hideText!=='subtitle')highlightText(ctx,layout.sub.lines,slide.subtitle,layout.subBox,layout.subtitleY,layout.sub.lineHeight,marksFor(slide,'subtitle'),color,layout.sub.size);
   ctx.globalAlpha=1;
+  if(is3D(project,slide)&&image){
+   const rendered=renderPhone(phoneLayer(project,slide,p.rotation),image,{x:0,y:0,w:p.width,h:p.height},factor),b=rendered.bounds;
+   ctx.drawImage(rendered.canvas,p.x+b.x,p.y+b.y,b.w,b.h);return layout;
+  }
   ctx.save();if(p.rotation){ctx.translate(p.x+p.width/2,p.y+p.height/2);ctx.rotate(p.rotation*Math.PI/180);ctx.translate(-p.x-p.width/2,-p.y-p.height/2);}
   const original=deviceFor(project),tint=(color,light)=>'#'+rgb(color).map(v=>Math.round(light>=0?v+(255-v)*light:v*(1+light)).toString(16).padStart(2,'0')).join('');
   const device=project.deviceColor?{...original,body:tint(project.deviceColor,-.45),metal:[.05,.8,-.25,.4,-.4].map(n=>tint(project.deviceColor,n))}:original;
@@ -119,10 +147,12 @@ export function screenRect(slide,box){const fit=(slide.screenFit==='cover'?Math.
 function highlightText(ctx,lines,source,box,y,lineHeight,marks,base,size){
  ctx.textAlign='left';
  markedLines(lines,source,marks).forEach(({line,runs},i)=>{
-  const length=ctx.measureText(line).width,x=box.x+(box.align==='right'?box.width-length:box.align==='center'?(box.width-length)/2:0),top=y+i*lineHeight;
-  const boxes=runs.map(run=>({...run,x:x+ctx.measureText(line.slice(0,run.start)).width,width:ctx.measureText(line.slice(0,run.end)).width-ctx.measureText(line.slice(0,run.start)).width}));
-  for(const b of boxes)if(b.mark.style==='pill'){ctx.fillStyle=b.mark.color;round(ctx,b.x-3,top-1,b.width+6,size+3,Math.min(b.mark.radius,(size+3)/2));ctx.fill();}
-  ctx.fillStyle=base;ctx.fillText(line,x,top);
-  for(const b of boxes){ctx.save();ctx.beginPath();ctx.rect(b.x,top-2,b.width,lineHeight+4);ctx.clip();ctx.fillStyle=b.mark.style==='pill'?textColor([b.mark.color]):b.mark.color;ctx.fillText(line,x,top);ctx.restore();}
+  const measured=measureMarkedLine(ctx,line,runs),length=measured.width,x=box.x+(box.align==='right'?box.width-length:box.align==='center'?(box.width-length)/2:0),top=y+i*lineHeight;
+  for(const segment of measured.segments){
+   const at=x+segment.x,mark=segment.mark;
+   if(mark?.style==='pill'){ctx.fillStyle=mark.color;round(ctx,at-segment.padding,top-2,segment.width+segment.padding*2,size+10,Math.min(mark.radius,(size+10)/2));ctx.fill();}
+   ctx.fillStyle=mark?(mark.style==='pill'?textColor([mark.color]):mark.color):base;
+   ctx.fillText(segment.text,at,top);
+  }
  });ctx.fillStyle=base;ctx.textAlign='center';
 }

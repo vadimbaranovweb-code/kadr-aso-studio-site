@@ -44,3 +44,11 @@ export function markedLines(lines,source,marks){
     if(current)runs.push(current);return {line,runs};
   });
 }
+
+// Reserve real horizontal space for badges, so their padding cannot cover adjacent words.
+export function measureMarkedLine(ctx,line,runs){
+ const segments=[];let end=0,width=0;
+ const add=(text,mark=null)=>{if(!text)return;const padding=mark?.style==='pill'?8:0,glyphWidth=ctx.measureText(text).width;segments.push({text,mark,x:width+padding,width:glyphWidth,padding});width+=glyphWidth+padding*2;};
+ for(const run of runs){add(line.slice(end,run.start));add(line.slice(run.start,run.end),run.mark);end=run.end;}
+ add(line.slice(end));return {segments,width};
+}
