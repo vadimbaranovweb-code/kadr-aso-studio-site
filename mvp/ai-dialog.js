@@ -13,6 +13,19 @@ export function createAIDialog({getProject,getRevision,getImage,onApply,onLocali
  function close(){controller?.abort();controller=null;disposePreview?.();disposePreview=null;modal.close();modal.replaceChildren();}
  function bindClose(){for(const b of modal.querySelectorAll('[data-close]'))b.onclick=close;}
  modal.addEventListener('cancel',e=>{e.preventDefault();close();});
+ function mountConnection(host){
+  if(!host)return;
+  function form(){
+   host.innerHTML=`<form class="inline-ai-key"><label>OpenAI API key<input type="password" aria-label="OpenAI API key" autocomplete="off" spellcheck="false" placeholder="sk-…"></label><p class="control-hint">Только в памяти вкладки. После перезагрузки ключ нужно подключить снова.</p><button type="submit" class="button" disabled>${apiKey?'Заменить ключ':'Подключить ключ'}</button></form>`;
+   const input=host.querySelector('input'),button=host.querySelector('button');
+   input.oninput=()=>button.disabled=!input.value.trim();
+   host.querySelector('form').onsubmit=e=>{e.preventDefault();if(!input.value.trim())return;apiKey=input.value.trim();input.value='';onKeyChange();};
+  }
+  if(!apiKey){form();return;}
+  host.innerHTML='<div class="inline-ai-connected"><span>Ключ подключён</span><button class="button quiet small" data-change-key>Заменить</button><button class="button quiet small" data-remove-key>Отключить</button></div>';
+  host.querySelector('[data-change-key]').onclick=form;
+  host.querySelector('[data-remove-key]').onclick=()=>{apiKey='';onKeyChange();};
+ }
  function connect(){
   if(modal.open||localization.isOpen()||reference.isOpen())return;
   modal.className='ai-dialog key-dialog';
@@ -43,5 +56,5 @@ export function createAIDialog({getProject,getRevision,getImage,onApply,onLocali
   apply.onclick=()=>{try{if(!rows)return;validateCopyResult({slides:rows},snapshot.slides);if(getRevision()!==revision)throw new Error('Комплект изменился. Запустите генерацию заново.');const locale=snapshot.locale==='source'?'source':target;onApply([[locale,rows]],{activate:locale});close();}catch(e){status.textContent=e.message;}};
   modal.showModal();
  }
- return {connect,open,hasKey:()=>Boolean(apiKey)};
+ return {connect,open,mountConnection,hasKey:()=>Boolean(apiKey)};
 }
