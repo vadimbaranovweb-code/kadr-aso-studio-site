@@ -1,3 +1,5 @@
+import {generateOnboardingPack} from './ai-onboarding-run.js';
+import {loadImage} from './media.js';
 import {createBackgroundDialog} from './background-dialog.js';
 import {createReferenceDialog} from './reference-dialog.js';
 import {LOCALES,cloneProject} from './model.js';
@@ -17,16 +19,28 @@ export function createAIDialog({getProject,getRevision,getImage,onApply,onLocali
  modal.addEventListener('cancel',e=>{e.preventDefault();close();});
  function mountConnection(host){
   if(!host)return;
-  function form(){
-   host.innerHTML=`<form class="inline-ai-key"><label>OpenAI API key<input type="password" aria-label="OpenAI API key" autocomplete="off" spellcheck="false" placeholder="sk-…"></label><p class="control-hint">Только в памяти вкладки. После перезагрузки ключ нужно подключить снова.</p><button type="submit" class="button" disabled>${apiKey?'Заменить ключ':'Подключить ключ'}</button></form>`;
-   const input=host.querySelector('input'),button=host.querySelector('button');
-   input.oninput=()=>button.disabled=!input.value.trim();
-   host.querySelector('form').onsubmit=e=>{e.preventDefault();if(!input.value.trim())return;apiKey=input.value.trim();input.value='';onKeyChange();};
+  host.innerHTML=`<div class="ai-key-heading"><strong>Подключение AI</strong><span data-key-status role="status"></span></div><form class="inline-ai-key"><label class="sr-only" for="onboarding-key">OpenAI API key</label><div class="ai-key-row"><input id="onboarding-key" type="password" aria-label="OpenAI API key" autocomplete="off" spellcheck="false" placeholder="sk-…"><button type="submit" class="button" disabled>Подключить</button><button type="button" class="button quiet" data-remove-key>Отключить</button></div></form><p class="control-hint">Ключ хранится в этой вкладке до перезагрузки. Подключение не запускает генерацию.</p>`;
+  const input=host.querySelector('input'),save=host.querySelector('[type=submit]'),remove=host.querySelector('[data-remove-key]');
+  function refresh(){
+   input.value='';input.placeholder=apiKey?'Ключ добавлен · новый ключ для замены':'sk-…';
+   save.textContent=apiKey?'Заменить':'Подключить';save.disabled=true;
+   remove.disabled=!apiKey;host.querySelector('[data-key-status]').textContent=apiKey?'Готово к работе':'Не подключено';
+   host.dataset.connected=String(Boolean(apiKey));
   }
-  if(!apiKey){form();return;}
-  host.innerHTML='<div class="inline-ai-connected"><span>Ключ подключён</span><button class="button quiet small" data-change-key>Заменить</button><button class="button quiet small" data-remove-key>Отключить</button></div>';
-  host.querySelector('[data-change-key]').onclick=form;
-  host.querySelector('[data-remove-key]').onclick=()=>{apiKey='';onKeyChange();};
+  input.oninput=()=>save.disabled=!input.value.trim();
+  host.querySelector('form').onsubmit=e=>{e.preventDefault();if(!input.value.trim())return;apiKey=input.value.trim();refresh();onKeyChange();input.focus({preventScroll:true});};
+  remove.onclick=()=>{apiKey='';refresh();onKeyChange();input.focus({preventScroll:true});};refresh();
+ }
+ async function buildPack(options){
+  return generateOnboardingPack({...options,key:apiKey},{
+   prepareSlides:snapshot=>snapshot.slides.map(s=>{
+    const asset=screenFor(s,snapshot.locale),image=getImage(asset.image);if(!image)throw new Error('Не удалось подготовить экран.');
+    const ratio=Math.min(1,1400/asset.height,700/asset.width),canvas=document.createElement('canvas');canvas.width=Math.round(asset.width*ratio);canvas.height=Math.round(asset.height*ratio);
+    const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
+    return {...s,image:canvas.toDataURL('image/jpeg',.88)};
+   }),
+   decodeBackground:async data=>{const image=await loadImage(data);return {image:data,width:image.naturalWidth,height:image.naturalHeight};}
+  });
  }
  function connect(){
   if(modal.open||localization.isOpen()||reference.isOpen()||background.isOpen())return;
@@ -59,5 +73,5 @@ export function createAIDialog({getProject,getRevision,getImage,onApply,onLocali
   apply.onclick=()=>{try{if(!rows)return;validateCopyResult({slides:rows},snapshot.slides);if(getRevision()!==revision)throw new Error('Комплект изменился. Запустите генерацию заново.');const locale=snapshot.locale==='source'?'source':target;onApply([[locale,rows]],{activate:locale});close();}catch(e){status.textContent=e.message;}};
   modal.showModal();
  }
- return {connect,open,mountConnection,hasKey:()=>Boolean(apiKey)};
+ return {connect,open,mountConnection,buildPack,hasKey:()=>Boolean(apiKey)};
 }
