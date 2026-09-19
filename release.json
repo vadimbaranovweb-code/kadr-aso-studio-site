@@ -1,4 +1,5 @@
 {
-  "version": "0.11.0",
-  "sourceCommit": "fd38c98f2d926c7a6dda8d2d573970054ea2174e"
+  "version": "0.12.0",
+  "sourceCommit": "f83fec54b1e7a653e23f7898c876799c263e010b",
+  "edition": "free"
 }

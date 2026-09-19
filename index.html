@@ -3,21 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="connect-src 'self'; object-src 'none'; base-uri 'self'">
   <meta name="theme-color" content="#F6F8FB">
-  <title>Кадр — скриншоты для вашего приложения</title>
-  <meta name="description" content="Загрузите экраны, выберите оформление и скачайте комплект скриншотов для RuStore, Google Play или App Store.">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='11' fill='%2315202E'/%3E%3Cpath d='M10 17v-7h7m6 0h7v7m0 6v7h-7m-6 0h-7v-7' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E">
+  <title>Скринпак — бесплатный редактор скриншотов для приложений</title>
+  <meta name="description" content="Скринпак — бесплатный редактор скриншотов для App Store, Google Play и RuStore. Загрузите экраны, настройте мокапы, фон и текст, скачайте комплект без водяного знака.">
+  <link rel="icon" type="image/svg+xml" href="./assets/brands/screenpack.svg">
   <link rel="stylesheet" href="./mvp/style.css">
   <link rel="stylesheet" href="./mvp/workspace.css">
   <script type="module" src="./mvp/app.js"></script>
 </head>
 <body>
   <header class="site-header">
-    <a href="./" class="brand" aria-label="Кадр — главная"><span class="brand-mark" aria-hidden="true">⌗</span>кадр<span class="version">MVP · 0.11.0</span></a>
+    <a href="./" class="brand" aria-label="Скринпак — главная"><img class="brand-mark" src="./assets/brands/screenpack.svg" width="28" height="28" alt="">скринпак<span class="version">Free · 0.12.0</span></a>
     <span id="save-status" class="save-status" aria-live="polite">Открываем проект…</span>
     <div class="header-actions"><button id="open-project" class="button quiet">Открыть проект</button><button id="save-project" class="button quiet" hidden>Сохранить проект</button><button id="new-project" class="button quiet" hidden>Новый</button></div>
   </header>
-  <main id="app" aria-busy="true"><div class="initial-loading">Открываем Кадр…</div></main>
+  <main id="app" aria-busy="true"><div class="initial-loading">Открываем Скринпак…</div></main>
   <div id="notice" class="notice" role="status" hidden></div>
   <input id="screens-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
   <input id="project-input" type="file" accept=".json,.kadr.json,application/json" hidden>

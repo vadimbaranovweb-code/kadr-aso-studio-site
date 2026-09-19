@@ -9,3 +9,7 @@ Downloaded 2026-09-12 from the respective official store sites. Used solely to i
 | app-store.png | https://apps.apple.com/assets/favicon/favicon-180.png |
 
 Device frames are drawn by our own Canvas renderer. No Dresser device images are redistributed.
+
+## Product identity
+
+`screenpack.svg` is the project's own compact mark for **Скринпак / Screenpack**, selected on 2026-09-19. Three orange portrait cards on charcoal refer to a screenshot pack. Used unchanged in the header and as the SVG favicon. The live wordmark is selectable Cyrillic text, not a raster image. The store assets above are separate third-party marks.

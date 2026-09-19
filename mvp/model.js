@@ -3,7 +3,7 @@ import {validateBackgroundAsset} from './background.js';
 import {validateComposition,cloneComposition} from './composition.js';
 import {validateMarks,legacyMarks} from './text-marks.js';
 import {ANDROID_DEVICES,IPHONE_DEVICES,DEFAULT_ANDROID_DEVICE} from './devices.js';
-export const VERSION='0.11.0';
+export const VERSION='0.12.0';
 export const STORES={
   apple:{name:'App Store',width:1320,height:2868,phone:'iPhone',min:1,max:10},
   android:{name:'Android · RuStore / Google Play',width:1080,height:1920,phone:'Android',min:1,max:10}
@@ -25,7 +25,7 @@ export const hasExamples=p=>p.slides.some(s=>(s.titleExample&&s.title)||(p.subti
 export const storeHint=p=>p.store==='android'&&(p.slides.length<2||p.slides.length>8)?'Для Google Play выберите 2–8 изображений из комплекта. RuStore принимает 1–10.':'';
 export function validateProject(value){
   if(value?.app==='kadr-aso')throw Object.assign(new Error('Это проект прежнего редактора. Откройте его в предыдущей версии: все слои и локализации сохранятся.'),{name:'LegacyProjectError'});
-  if(value?.app!=='kadr-mvp'||![1,2,3,4,5,6,7].includes(value.version))throw new Error('Этот формат проекта не поддерживается. Выберите файл Кадра MVP.');
+  if(value?.app!=='kadr-mvp'||![1,2,3,4,5,6,7].includes(value.version))throw new Error('Этот формат проекта не поддерживается. Выберите файл проекта Скринпака или Кадра MVP.');
   const store=value.version===1&&['rustore','google'].includes(value.store)?'android':value.store;
   if(!Object.hasOwn(STORES,store)||!['device','outline','none'].includes(value.frame)||!['full','crop'].includes(value.layout))throw new Error('В проекте повреждены настройки оформления.');
   const androidDevice=value.androidDevice===undefined?'android-generic':value.androidDevice;

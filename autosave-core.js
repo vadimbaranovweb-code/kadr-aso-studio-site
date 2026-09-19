@@ -1,5 +1,5 @@
-import {clone,validateProject} from './model.js';
 import {createRecoveryCodec} from './recovery-store.js';
+const clone=value=>Array.isArray(value)?value.map(clone):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([k,v])=>[k,clone(v)])):value;
 
 export function recoveryMessage(error){
   if(error?.name==='QuotaExceededError')return 'В браузере не хватает места. Скачай текущий проект в файл.';
@@ -7,7 +7,8 @@ export function recoveryMessage(error){
   return error?.message||'Не удалось сохранить резервную копию. Скачай проект в файл.';
 }
 
-export function createAutosave({store,getSnapshot,restore,onState=()=>{},delay=650,maxWait=3000,validate=validateProject}){
+export function createAutosave({store,getSnapshot,restore,onState=()=>{},delay=650,maxWait=3000,validate}){
+  if(typeof validate!=='function')throw new TypeError('A project validator is required.');
   const codec=createRecoveryCodec();let token=null,generation=0,savedGeneration=0,ready=false,blocked=false,flight=null,timer=null,maxTimer=null;
   let state={status:'loading',savedAt:null,error:null,mode:null,pending:false};
   const report=patch=>{state={...state,...patch,pending:generation!==savedGeneration};onState({...state});};
