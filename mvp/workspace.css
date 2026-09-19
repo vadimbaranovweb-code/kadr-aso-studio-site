@@ -1,4 +1,4 @@
-/* A single workspace owns viewport geometry across all six steps. */
+/* Stable workspace geometry across the four creation steps. */
 :root{--ink:#242426;--muted:#747478;--line:#e8e8eb;--canvas:#f4f4f5;--accent:#2877ed;--accent-soft:#edf3ff;--control-h:36px;--card-h:clamp(340px,calc(100dvh - 300px),720px)}
 body.workspace-active{height:100dvh;overflow:hidden;display:flex;flex-direction:column}
 .site-header{height:56px;min-height:56px;padding:0 18px;gap:20px;flex-wrap:nowrap;flex-shrink:0}
@@ -56,3 +56,16 @@ dialog{border-color:var(--line);border-radius:14px}dialog::backdrop{background:#
 .pose-controls{display:grid;gap:14px;margin-bottom:22px}.pose-controls label{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:14px}.pose-controls input{grid-column:1/-1}.phone-render-error{position:absolute;inset:45% 10% auto;background:#fff0e9;padding:12px;font-size:12px;border-radius:8px;color:#873819}
 
 .background-thumb{display:flex;align-items:center;gap:10px}.background-thumb img{width:56px;height:72px;object-fit:cover;border-radius:6px}
+/* Explicit selection; outlines do not change card geometry or exported pixels. */
+.workspace .active-slide .canvas-shell{outline:2px solid var(--accent);outline-offset:4px}
+.workspace .slide-head{gap:5px}.slide-grip{display:flex;cursor:grab;color:var(--muted)}
+.workspace .slide-number{border:0;background:transparent;border-radius:5px;font-size:12px;white-space:nowrap;padding:3px 5px;color:var(--muted);font-weight:600;cursor:pointer}
+.workspace .slide-number[aria-pressed=true]{color:var(--accent);background:var(--accent-soft)}
+.slide-navigator{display:flex;gap:6px;align-items:center}.slide-navigator select{flex:1;min-width:0}.slide-navigator .icon-action{flex:none}
+.onboarding-content .store-logos.android-logos{width:70px;flex-basis:70px;display:flex;gap:6px}.onboarding-content .android-logos img{width:30px;height:30px}
+.upload-guidance{margin:0 0 20px;padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:white;font-size:14px;line-height:1.5}.upload-guidance p{margin:6px 0 0;color:var(--muted)}.upload-guidance a{color:inherit;text-underline-offset:3px}
+.content-generate{width:100%;margin-top:12px}.copy-dialog{width:min(560px,calc(100vw - 32px));max-height:85dvh;overflow:auto;padding:24px}.copy-dialog h2{font-size:22px}.copy-dialog label{display:grid;gap:6px;margin:14px 0;font-size:14px}.copy-dialog input,.copy-dialog select{width:100%;min-height:40px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}.copy-dialog p{font-size:14px;color:var(--muted)}.copy-dialog .copy-row{border-top:1px solid var(--line);padding:12px 0}.copy-dialog .copy-row p{margin:6px 0}.copy-dialog .copy-error{color:#b43226}.copy-dialog .dialog-actions{flex-wrap:wrap}
+.inspector .slide-navigator .icon-action{width:34px;min-width:34px;flex:0 0 34px}
+.inspector .slide-navigator select{width:0;flex:1 1 0}
+dialog.content-copy-dialog{width:min(600px,calc(100vw - 32px))!important}
+.content-copy-dialog .copy-estimate{color:var(--ink)}

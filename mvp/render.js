@@ -1,6 +1,6 @@
 import {renderPhone} from '../phone-renderer.js';
 import {phoneProjection} from '../phone-geometry.js';
-import {PHONE} from '../phone-data.js';
+import {phoneDimensions} from '../phone-data.js';
 import {is3D,phoneLayer} from './phone-pose.js';
 import {drawBackgroundImage} from './background.js';
 import {drawDecorations} from './composition.js';
@@ -77,7 +77,7 @@ export function frameLayout(ctx,project,slide){
  const peers=project.slides.filter(s=>(s.contentOrder||'text-top')===(slide.contentOrder||'text-top'));
  const l=baseFrameLayout(ctx,{...project,slides:peers.length?peers:project.slides},slide),p=l.phone;
  p.rotation=slide.phonePose?.rotation??p.rotation??0;
- if(is3D(project,slide)){p.height=p.width*PHONE.height/PHONE.width;p.ratio=PHONE.height/PHONE.width;}
+ if(is3D(project,slide)){const dimensions=phoneDimensions(phoneLayer(project,slide));p.ratio=dimensions.height/dimensions.width;p.height=p.width*p.ratio;}
  if(slide.contentOrder==='text-bottom'){
   const top=Math.min(l.titleY,l.subtitleY),bottom=Math.max(l.titleY+l.titleHeight,l.subtitleY+l.subtitleHeight),delta=l.h-top-bottom;
   l.titleY+=delta;l.subtitleY+=delta;l.titleBox={...l.titleBox,y:l.titleY};l.subBox={...l.subBox,y:l.subtitleY};l.textBottom=bottom+delta;

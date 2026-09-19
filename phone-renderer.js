@@ -1,6 +1,6 @@
 import * as T from './vendor/three/three.module.js';
 import {RoomEnvironment} from './vendor/three/RoomEnvironment.js';
-import {PHONE,phoneSettings,screenPlacement} from './phone-data.js';
+import {PHONE,phoneSettings,screenPlacement,phoneDimensions} from './phone-data.js';
 import {makePhone,orientPhone,phoneProjection} from './phone-geometry.js';
 
 let state=null,initError=null,serial=0,pixels=0;
@@ -11,20 +11,22 @@ export function resetPhoneRenderer(){
   clearCache();initError=null;
   if(state){state.texture?.dispose();state.environment?.dispose();state.pmrem?.dispose();state.phone.group.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});state.renderer.dispose();state=null;}
 }
-function initialize(){
+function initialize(layer){
+  const modelKey=JSON.stringify([layer.deviceModel,layer.deviceProfile]);
+  if(state&&state.modelKey!==modelKey)resetPhoneRenderer();
   if(initError)throw new Error(initError);
   if(state){if(state.lost)throw new Error(unavailable);return state;}
   try{
     const canvas=document.createElement('canvas');
     const renderer=new T.WebGLRenderer({canvas,alpha:true,antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
     renderer.setPixelRatio(1);renderer.setClearColor(0,0);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.NoToneMapping;
-    const scene=new T.Scene(),phone=makePhone();scene.add(phone.group);
+    const scene=new T.Scene(),phone=makePhone(layer);scene.add(phone.group);
     const room=new RoomEnvironment(),pmrem=new T.PMREMGenerator(renderer),environment=pmrem.fromScene(room,.04);
     room.dispose();scene.environment=environment.texture;scene.environmentIntensity=.8;
     const fill=new T.HemisphereLight(0xeaf3ff,0x63728b,1.3);scene.add(fill);
     const key=new T.DirectionalLight(0xfffaf3,2.3);key.position.set(-120,180,200);scene.add(key);
     const rim=new T.DirectionalLight(0xc9dfff,1.2);rim.position.set(120,30,-130);scene.add(rim);
-    state={canvas,renderer,scene,phone,pmrem,environment,key,rim,texture:null,textureKey:null,lost:false};
+    state={canvas,renderer,scene,phone,pmrem,environment,key,rim,texture:null,textureKey:null,modelKey,lost:false};
     const entry=state;
     canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();entry.lost=true;clearCache();});
     canvas.addEventListener('webglcontextrestored',()=>{if(state===entry){resetPhoneRenderer();document.dispatchEvent(new Event('kadr-3d-restored'));}});
@@ -32,6 +34,7 @@ function initialize(){
   }catch(error){initError=unavailable;throw new Error(unavailable,{cause:error});}
 }
 function textureFor(s,img,l){
+  const PHONE=phoneDimensions(l);
   if(!imageIds.has(img))imageIds.set(img,++serial);
   const key=[imageIds.get(img),l.screenFit,l.screenX,l.screenY,l.screenZoom].join(':');
   if(key===s.textureKey)return s.texture;
@@ -45,7 +48,7 @@ function textureFor(s,img,l){
   s.texture.anisotropy=Math.min(8,s.renderer.capabilities.getMaxAnisotropy());s.textureKey=key;return s.texture;
 }
 export function renderPhone(layer,img,rect,resolution=1){
-  const s=initialize(),l=phoneSettings(layer),local={x:0,y:0,w:rect.w,h:rect.h};
+  const l=phoneSettings(layer),s=initialize(l),local={x:0,y:0,w:rect.w,h:rect.h};
   if(!imageIds.has(img))imageIds.set(img,++serial);
   const key=JSON.stringify([imageIds.get(img),rect.w,rect.h,resolution,...['yaw','pitch','rotation','frameColor','screenFit','screenX','screenY','screenZoom','island','perspective','lightDirection','lightIntensity','reflection'].map(k=>l[k])]);
   if(cache.has(key)){const value=cache.get(key);cache.delete(key);cache.set(key,value);return value;}

@@ -1,3 +1,4 @@
+import {deviceFor} from './devices.js';
 // Per-slide pose. A null rotation preserves an imported reference's 2D angle.
 export const DEFAULT_POSE=Object.freeze({mode:'flat',rotation:null,yaw:0,pitch:0,perspective:35,reflection:.12});
 export function validatePose(value){
@@ -11,8 +12,9 @@ export function validatePose(value){
  }
  return result;
 }
-export const is3D=(project,slide)=>project.store==='apple'&&project.frame==='device'&&slide.phonePose?.mode==='3d';
+export const is3D=(project,slide)=>project.frame==='device'&&slide.phonePose?.mode==='3d';
 export function phoneLayer(project,slide,rotation=0){
  const pose={...DEFAULT_POSE,...slide.phonePose};
- return {type:'device',deviceModel:'iphone17',...pose,rotation,frameColor:project.deviceColor||'#bdc2c9',screenFit:slide.screenFit,screenZoom:slide.screenScale,screenX:50-(slide.screenX??0)*50,screenY:50-(slide.screenY??0)*50,island:true,lightDirection:-35,lightIntensity:1};
+ const android=project.store!=='apple',device=deviceFor(project);
+ return {type:'device',deviceModel:android?'android':'iphone17',deviceProfile:android?{ratio:device.ratio,radius:device.radius}:null,...pose,rotation,frameColor:project.deviceColor||(android?device.body:'#bdc2c9'),screenFit:slide.screenFit,screenZoom:slide.screenScale,screenX:50-(slide.screenX??0)*50,screenY:50-(slide.screenY??0)*50,island:true,lightDirection:-35,lightIntensity:1};
 }

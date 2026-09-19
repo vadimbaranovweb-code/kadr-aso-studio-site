@@ -23,3 +23,11 @@ export function screenPlacement(iw,ih,sw,sh,settings){
 }
 export const POSE_KEYS = ['yaw','pitch','rotation','perspective'];
 export function poseOf(layer){return Object.fromEntries(POSE_KEYS.map(k=>[k,phoneSettings(layer)[k]??0]));}
+
+// Authored Android envelope follows the selected front-frame proportions; not CAD.
+export function phoneDimensions(layer={}){
+ if(layer.deviceModel!=='android')return PHONE;
+ const ratio=Number(layer.deviceProfile?.ratio)||20/9,radius=Number(layer.deviceProfile?.radius)||.12;
+ const screenWidth=67,screenHeight=screenWidth*ratio;
+ return {width:71.5,height:screenHeight+4.5,depth:8.2,radius:71.5*radius,screenWidth,screenHeight,screenRadius:Math.max(3,71.5*radius-1.8)};
+}
